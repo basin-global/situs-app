@@ -5,8 +5,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { ethers, Contract } from 'ethers'
 import { toast } from 'react-toastify'
 import { getSitusOGByName } from '@/config/situs'
-import situsOGAbi from '@/src/abi/SitusOG.json'
-import PageContent from '@/components/page-content'
+import situsOGAbi from '@/abi/SitusOG.json'
 import { validateDomainName } from '@/utils/domain-validation'
 import { AccountsNavigation } from '@/components/accounts-navigation'
 
@@ -352,7 +351,7 @@ export default function CreateAccountPage({ params }: PageProps) {
     address ? `${address.slice(0, 6)}...${address.slice(-4)}` : '';
 
   return (
-    <PageContent situs={params.situs}>
+    <>
       <AccountsNavigation />
       <div className="min-h-screen bg-gray-100 flex flex-col py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -414,6 +413,6 @@ export default function CreateAccountPage({ params }: PageProps) {
           </div>
         )}
       </div>
-    </PageContent>
+    </>
   );
 }

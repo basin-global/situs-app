@@ -392,7 +392,7 @@ export default function NFTPage({ params }: PageProps) {
             <div className="mb-8">
               <p className="text-lg mb-4">{nft?.description}</p>
               <ul className="list-disc list-inside mb-4">
-                {nft?.attributes?.map((attr, index) => (
+                {nft?.attributes?.map((attr: { trait_type: string; value: string }, index: number) => (
                   <li key={index}>
                     <span className="font-semibold">{attr.trait_type}:</span> {attr.value}
                   </li>

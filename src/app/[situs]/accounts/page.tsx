@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link'
-import PageContent from '@/components/page-content'
 import { Button } from "@/components/ui/button"
 import { useSitus } from '@/contexts/situs-context'
 import { useEffect } from 'react'
@@ -26,7 +25,7 @@ export default function AccountsPage({ params }: PageProps) {
   ]
 
   return (
-    <PageContent situs={currentSitus || params.situs}>
+    <div>
       <h1 className="text-3xl font-bold mb-6">Accounts</h1>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {accountLinks.map((link) => (
@@ -37,6 +36,6 @@ export default function AccountsPage({ params }: PageProps) {
           </Link>
         ))}
       </div>
-    </PageContent>
+    </div>
   )
 }

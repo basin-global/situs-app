@@ -1,14 +1,14 @@
-import PageContent from '@/components/page-content'
+import { ReactNode } from 'react';
 
 interface PageProps {
   params: { situs: string }
 }
 
-export default function Page({ params }: PageProps) {
+export default function SitusPage({ params }: PageProps): ReactNode {
   return (
-    <PageContent situs={params.situs}>
-      <h1>{params.situs} Situs</h1>
+    <div>
+      <h1>{params.situs} Dashboard</h1>
       {/* Add more situs-specific content here */}
-    </PageContent>
-  )
+    </div>
+  );
 }

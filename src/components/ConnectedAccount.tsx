@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { resolveENS } from '@/utils/simplehash';
-import SitusOGAbi from "@/src/abi/SitusOG.json";
+import SitusOGAbi from "@/abi/SitusOG.json";
 
 function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;

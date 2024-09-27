@@ -5,6 +5,9 @@ const nextConfig = {
     domains: ['assets.example.com'],
     unoptimized: true,
   },
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
 };
 
 export default nextConfig;

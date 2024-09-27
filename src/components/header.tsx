@@ -7,7 +7,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { SitusChooser } from './situs-chooser'
 import { usePathname } from 'next/navigation'
 import { useSitus } from '@/contexts/situs-context'
-import SitusOGAbi from "@/src/abi/SitusOG.json";
+import SitusOGAbi from "@/abi/SitusOG.json";
 
 export function Header() {
   const { login, authenticated, user, logout } = usePrivy()
