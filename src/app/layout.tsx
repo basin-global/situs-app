@@ -1,44 +1,33 @@
+// The root layout sets up the overall HTML structure, including <html> and <body> tags.
+
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './globals.css'
-import { Header } from '@/components/header'
+import Header from '@/components/header'
 import { SitusProvider } from '@/contexts/situs-context'
 import { PrivyProviderWrapper } from '@/providers/privy-provider'
-
-const inter = Inter({ subsets: ['latin'] })
+import { spaceGrotesk, spaceMono } from './fonts'
+import Footer from '@/components/footer'
 
 export const metadata: Metadata = {
-  title: 'Situs Protocol',
-  description: 'Manage your digital assets with Situs Protocol',
+  title: 'Situs | place-based resilience',
+  description: 'Open source tools for any group to organize and fund climate and nature projects.',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
-        <SitusProvider>
-          <PrivyProviderWrapper>
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <main className="flex-1 p-4">
-                {children}
-              </main>
-              <footer className="border-t">
-                <div className="container mx-auto px-4 py-4 text-center text-sm text-gray-600">
-                  situs: place-based resilience
-                </div>
-              </footer>
-            </div>
+    <html lang="en" className={`${spaceGrotesk.variable} ${spaceMono.variable}`}>
+      <body className="font-sans">
+        <PrivyProviderWrapper>
+          <SitusProvider>
+            <Header />
             <ToastContainer />
-          </PrivyProviderWrapper>
-        </SitusProvider>
+            {children}
+            <Footer />
+          </SitusProvider>
+        </PrivyProviderWrapper>
       </body>
     </html>
-  )
+  );
 }

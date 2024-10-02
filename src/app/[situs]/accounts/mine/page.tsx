@@ -5,11 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { fetchNFTsForOwner, NFT } from '@/utils/simplehash'
-import { getSitusOGByName } from '@/config/situs'
+import { useSitus } from '@/contexts/situs-context'
 import { Input } from '@/components/ui/input'
 import debounce from 'lodash/debounce'
 import { usePrivy } from '@privy-io/react-auth'
-import { AccountsNavigation } from '@/components/accounts-navigation'
 
 const ITEMS_PER_PAGE = 40
 
@@ -18,6 +17,7 @@ export default function MyAccountsPage({ params }: { params: { situs: string } }
   const searchParams = useSearchParams()
   const { user, login, authenticated } = usePrivy()
   const situs = params.situs as string
+  const { getOGByName } = useSitus()
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [nfts, setNfts] = useState<NFT[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -27,26 +27,37 @@ export default function MyAccountsPage({ params }: { params: { situs: string } }
   const [hasMore, setHasMore] = useState(true)
   const [noAccountsFound, setNoAccountsFound] = useState(false)
   const [initialFetchDone, setInitialFetchDone] = useState(false)
+  const [situsOG, setSitusOG] = useState<any>(null)
 
-  const situsOG = getSitusOGByName(situs)
+  useEffect(() => {
+    async function loadSitusOG() {
+      try {
+        const og = await getOGByName(situs)
+        setSitusOG(og)
+      } catch (error) {
+        console.error('Error loading SitusOG:', error)
+        setErrorMessage('Failed to load Situs OG information')
+      }
+    }
+    loadSitusOG()
+  }, [situs, getOGByName])
 
   const fetchNFTs = useCallback(async () => {
     if (isLoading || !authenticated || !user?.wallet?.address || !situsOG) return;
     setIsLoading(true)
     try {
       console.log('Fetching NFTs for wallet:', user.wallet.address);
-      const result = await fetchNFTsForOwner(user.wallet.address, cursor, ITEMS_PER_PAGE)
+      const result = await fetchNFTsForOwner(user.wallet.address, cursor)
       console.log('Fetched NFTs:', result.nfts.length);
-      const ogNFTs = result.nfts.filter(nft => nft.contract_address === situsOG.contractAddress)
+      const ogNFTs = result.nfts.filter(nft => nft.contract_address.toLowerCase() === situsOG.contractAddress.toLowerCase())
       setNfts(prev => [...prev, ...ogNFTs.filter(nft => !prev.some(p => p.id === nft.id))])
       setCursor(result.next_cursor || undefined)
       setHasMore(!!result.next_cursor)
       
-      if (ogNFTs.length === 0 && nfts.length === 0) {
-        // Set a timeout before showing "No accounts found"
+      if (ogNFTs.length === 0 && nfts.length === 0 && !result.next_cursor) {
         setTimeout(() => {
           setNoAccountsFound(true)
-        }, 2000) // 2 seconds delay
+        }, 2000)
       } else {
         setNoAccountsFound(false)
       }
@@ -60,10 +71,10 @@ export default function MyAccountsPage({ params }: { params: { situs: string } }
   }, [authenticated, user?.wallet?.address, cursor, situsOG, nfts.length])
 
   useEffect(() => {
-    if (authenticated && !initialFetchDone) {
+    if (authenticated && !initialFetchDone && situsOG) {
       fetchNFTs();
     }
-  }, [authenticated, fetchNFTs, initialFetchDone]);
+  }, [authenticated, fetchNFTs, initialFetchDone, situsOG]);
 
   const filteredNFTs = useMemo(() => {
     return nfts.filter(nft => 
@@ -106,13 +117,13 @@ export default function MyAccountsPage({ params }: { params: { situs: string } }
   }
 
   if (!authenticated) return <button onClick={login}>Connect Wallet</button>
-  if (!situsOG) return <div>Invalid situs specified.</div>
-  if (errorMessage) return <div>Failed to load NFTs: {errorMessage}</div>
+  if (!situsOG) return <div>Loading Situs OG information...</div>
+  if (errorMessage) return <div>Error: {errorMessage}</div>
 
   const NFTGrid = ({ nfts }: { nfts: NFT[] }) => (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      {nfts.map((nft) => {
-        const tokenName = nft.name.toLowerCase().split('.')[0]; // Take only the part before the dot
+      {nfts.slice(0, ITEMS_PER_PAGE).map((nft) => {
+        const tokenName = nft.name.toLowerCase().split('.')[0];
         return (
           <Link 
             key={`${nft.contract_address}-${nft.id}`} 
@@ -145,7 +156,6 @@ export default function MyAccountsPage({ params }: { params: { situs: string } }
 
   return (
     <div>
-      <AccountsNavigation />
       <h1 className="text-2xl font-bold mb-4">My {situsOG?.name} OG Accounts</h1>
       <div className="relative">
         <Input

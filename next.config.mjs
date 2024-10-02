@@ -8,6 +8,7 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: false,
   },
+  // Remove the env section unless you have a specific reason to keep it
 };
 
 export default nextConfig;

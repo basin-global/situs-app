@@ -1,13 +1,48 @@
-const SIMPLEHASH_API_KEY = process.env.NEXT_PUBLIC_SIMPLEHASH_API_KEY;
+import { getSitusOGs } from '../config/situs';
+import { getChainBySimplehashName } from '@/config/chains';
 
 // Updated NFT interface
 export interface NFT {
   id: string;
   name: string;
-  image: string; // Make sure this property exists
+  image: string;
   description?: string;
   attributes: Array<{ trait_type: string; value: string }>;
-  contract_address: string; // Added this property
+  contract_address: string;
+}
+
+async function callSimpleHash(endpoint: string, params: Record<string, string | string[]>) {
+  const url = new URL('/api/simplehash', window.location.origin);
+  url.searchParams.append('endpoint', endpoint);
+  
+  Object.entries(params).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      url.searchParams.append(key, value.join(','));
+    } else {
+      url.searchParams.append(key, value);
+    }
+  });
+
+  console.log("Local API route URL:", url.toString());
+  
+  // Log what the SimpleHash URL should look like
+  const simpleHashUrl = new URL(`https://api.simplehash.com/api/v0/${endpoint}`);
+  Object.entries(params).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      simpleHashUrl.searchParams.append(key, value.join(','));
+    } else {
+      simpleHashUrl.searchParams.append(key, value);
+    }
+  });
+  console.log("Expected SimpleHash API URL:", simpleHashUrl.toString());
+
+  const response = await fetch(url.toString());
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('SimpleHash API error:', response.status, errorText);
+    throw new Error(`SimpleHash API error: ${response.status} ${response.statusText}\n${errorText}`);
+  }
+  return response.json();
 }
 
 export async function fetchNFTsFromContract(
@@ -16,43 +51,17 @@ export async function fetchNFTsFromContract(
   limit: number = 50,
   search?: string
 ): Promise<{ nfts: NFT[], next_cursor: string | null }> {
-  const url = new URL(`https://api.simplehash.com/api/v0/nfts/base/${contractAddress}`);
-  url.searchParams.append('limit', limit.toString());
-  if (cursor) {
-    url.searchParams.append('cursor', cursor);
-  }
-  if (search) {
-    url.searchParams.append('search', search);
-  }
-
-  console.log('Fetching NFTs from URL:', url.toString());
-  console.log('API Key present:', !!SIMPLEHASH_API_KEY);
+  const params: Record<string, string> = {
+    contractAddress,
+    chain: 'base',
+    limit: limit.toString()
+  };
+  if (cursor) params.cursor = cursor;
+  if (search) params.search = search;
 
   try {
-    const response = await fetch(url.toString(), {
-      headers: {
-        'X-API-KEY': SIMPLEHASH_API_KEY || '',
-      },
-    });
-
-    console.log('Response status:', response.status);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('SimpleHash API error:', response.status, errorText);
-      throw new Error(`SimpleHash API error: ${response.status} ${response.statusText}\n${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('SimpleHash API response:', JSON.stringify(data, null, 2));
-
-    if (!data.nfts || !Array.isArray(data.nfts)) {
-      console.error('Unexpected API response structure:', data);
-      throw new Error('Unexpected API response structure');
-    }
-
-    console.log('Number of NFTs returned:', data.nfts.length);
-
+    const data = await callSimpleHash('nfts/contract', params);
+    
     const nfts: NFT[] = data.nfts.map((nft: any) => ({
       id: nft.token_id,
       name: nft.name || `#${nft.token_id}`,
@@ -73,25 +82,12 @@ export async function fetchNFTByTokenId(
   contractAddress: string,
   tokenId: string
 ): Promise<NFT | null> {
-  const url = new URL(`https://api.simplehash.com/api/v0/nfts/base/${contractAddress}/${tokenId}`);
-
-  console.log('Fetching NFT from URL:', url.toString());
-
   try {
-    const response = await fetch(url.toString(), {
-      headers: {
-        'X-API-KEY': SIMPLEHASH_API_KEY || '',
-      },
+    const nft = await callSimpleHash('nfts/token', {
+      contractAddress,
+      tokenId,
+      chain: 'base'
     });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('SimpleHash API error:', response.status, errorText);
-      throw new Error(`SimpleHash API error: ${response.status} ${response.statusText}\n${errorText}`);
-    }
-
-    const nft = await response.json();
-    console.log('SimpleHash API response:', JSON.stringify(nft, null, 2));
 
     return {
       id: nft.token_id,
@@ -107,38 +103,18 @@ export async function fetchNFTByTokenId(
   }
 }
 
-const API_BASE_URL = 'https://api.simplehash.com/api/v0/nfts';
-
 export async function fetchNFTsForOwner(
   ownerAddress: string,
-  cursor?: string,
-  limit: number = 50
+  cursor?: string
 ): Promise<{ nfts: NFT[], next_cursor: string | null }> {
-  const url = new URL(`${API_BASE_URL}/owners`);
-  url.searchParams.append('chains', 'base');
-  url.searchParams.append('wallet_addresses', ownerAddress);
-  url.searchParams.append('limit', limit.toString());
-  if (cursor) {
-    url.searchParams.append('cursor', cursor);
-  }
-
-  console.log('Fetching NFTs from URL:', url.toString());
+  const params: Record<string, string> = {
+    chains: 'base',
+    wallet_addresses: ownerAddress
+  };
+  if (cursor) params.cursor = cursor;
 
   try {
-    const response = await fetch(url.toString(), {
-      headers: {
-        'X-API-KEY': SIMPLEHASH_API_KEY || '',
-      },
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('SimpleHash API error:', response.status, errorText);
-      throw new Error(`SimpleHash API error: ${response.status} ${response.statusText}\n${errorText}`);
-    }
-
-    const data = await response.json();
-    console.log('SimpleHash API response:', JSON.stringify(data, null, 2));
+    const data = await callSimpleHash('nfts/owners', params);
 
     const nfts: NFT[] = data.nfts.map((nft: any) => ({
       id: nft.token_id,
@@ -158,11 +134,6 @@ export async function fetchNFTsForOwner(
     throw error;
   }
 }
-
-// Add this import if not already present
-import axios from 'axios';
-
-import { getChainBySimplehashName } from '@/config/chains';
 
 interface NFTAsset {
   contract_address: string;
@@ -189,39 +160,31 @@ export interface TBAAssets {
 export async function fetchTBAAssets(tbaAddress: string, chain: string): Promise<TBAAssets> {
   console.log(`Fetching TBA assets for address: ${tbaAddress} on chain: ${chain}`);
 
-  const apiKey = process.env.NEXT_PUBLIC_SIMPLEHASH_API_KEY;
-  if (!apiKey) {
-    throw new Error('SimpleHash API key is not set');
-  }
-
   const selectedChain = getChainBySimplehashName(chain);
   if (!selectedChain) {
     throw new Error(`Unsupported chain: ${chain}`);
   }
 
-  console.log(`Fetching TBA assets for address: ${tbaAddress} on chain: ${chain}`);
-
   try {
     // Fetch NFTs (ERC721 and ERC1155)
-    const nftResponse = await axios.get(`https://api.simplehash.com/api/v0/nfts/owners?chains=${selectedChain.simplehashName}&wallet_addresses=${tbaAddress}`, {
-      headers: { 'X-API-KEY': apiKey },
+    const nftData = await callSimpleHash('nfts/owners', {
+      chains: selectedChain.simplehashName,
+      wallet_addresses: tbaAddress
     });
 
     // Fetch ERC20 tokens
-    const tokenResponse = await axios.get(`https://api.simplehash.com/api/v0/fungibles/balances?chains=${selectedChain.simplehashName}&wallet_addresses=${tbaAddress}`, {
-      headers: { 'X-API-KEY': apiKey },
+    const tokenData = await callSimpleHash('fungibles/balances', {
+      chains: selectedChain.simplehashName,
+      wallet_addresses: tbaAddress
     });
 
     // Fetch native token balance
-    const nativeTokenResponse = await axios.get(`https://api.simplehash.com/api/v0/native_tokens/balances?chains=${selectedChain.simplehashName}&wallet_addresses=${tbaAddress}`, {
-      headers: { 'X-API-KEY': apiKey },
+    const nativeTokenData = await callSimpleHash('native_tokens/balances', {
+      chains: selectedChain.simplehashName,
+      wallet_addresses: tbaAddress
     });
 
-    console.log('Raw SimpleHash NFT response:', JSON.stringify(nftResponse.data, null, 2));
-    console.log('Raw SimpleHash Token response:', JSON.stringify(tokenResponse.data, null, 2));
-    console.log('Raw SimpleHash Native Token response:', JSON.stringify(nativeTokenResponse.data, null, 2));
-
-    const nfts: NFTAsset[] = nftResponse.data.nfts?.map((asset: any) => ({
+    const nfts: NFTAsset[] = nftData.nfts?.map((asset: any) => ({
       contract_address: asset.contract.address,
       token_id: asset.token_id,
       name: asset.name || `#${asset.token_id}`,
@@ -230,7 +193,7 @@ export async function fetchTBAAssets(tbaAddress: string, chain: string): Promise
       balance: asset.owned_quantity || '1',
     })) || [];
 
-    const tokens: TokenAsset[] = tokenResponse.data.fungibles?.map((fungible: any) => {
+    const tokens: TokenAsset[] = tokenData.fungibles?.map((fungible: any) => {
       const balance = fungible.queried_wallet_balances.find((b: any) => b.address.toLowerCase() === tbaAddress.toLowerCase());
       return {
         contract_address: fungible.fungible_id.split('.')[1],
@@ -242,8 +205,8 @@ export async function fetchTBAAssets(tbaAddress: string, chain: string): Promise
     }) || [];
 
     // Add native token to tokens array
-    if (nativeTokenResponse.data.balances && nativeTokenResponse.data.balances.length > 0) {
-      const nativeBalance = nativeTokenResponse.data.balances[0];
+    if (nativeTokenData.balances && nativeTokenData.balances.length > 0) {
+      const nativeBalance = nativeTokenData.balances[0];
       tokens.unshift({
         contract_address: 'native',
         name: selectedChain.nativeCurrency.name,
@@ -258,35 +221,24 @@ export async function fetchTBAAssets(tbaAddress: string, chain: string): Promise
     return { nfts, tokens };
   } catch (error) {
     console.error(`Error fetching TBA assets from SimpleHash for ${chain}:`, error);
-    if (axios.isAxiosError(error)) {
-      console.error('Axios error details:', error.response?.data);
-    }
-    throw error; // Re-throw the error instead of returning empty arrays
+    throw error;
   }
 }
 
 export async function fetchNFTsByContract(contractAddress: string, cursor?: string, limit: number = 20) {
-  const apiKey = process.env.NEXT_PUBLIC_SIMPLEHASH_API_KEY;
-  const chain = 'base';  // Adjust this if needed
-  const url = `https://api.simplehash.com/api/v0/nfts/${chain}/${contractAddress}?limit=${limit}${cursor ? `&cursor=${cursor}` : ''}`;
+  const params: Record<string, string> = {
+    contractAddress,
+    chain: 'base',
+    limit: limit.toString()
+  };
+  if (cursor) params.cursor = cursor;
 
-  const response = await fetch(url, {
-    headers: {
-      'X-API-KEY': apiKey || '',
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
-  }
-
-  const data = await response.json();
+  const data = await callSimpleHash('nfts/contract', params);
   
-  // Map the API response to your NFT interface
   const nfts = data.nfts.map((nft: any) => ({
     id: nft.token_id,
     name: nft.name || `#${nft.token_id}`,
-    image: nft.image_url || nft.image_original_url || '',  // Fallback to empty string if both are undefined
+    image: nft.image_url || nft.image_original_url || '',
     description: nft.description,
     attributes: nft.attributes || [],
     contract_address: nft.contract_address,
@@ -297,29 +249,11 @@ export async function fetchNFTsByContract(contractAddress: string, cursor?: stri
 
 export async function resolveENS(address: string): Promise<string> {
   console.log(`resolveENS function called with address: ${address}`);
-  console.log('NEXT_PUBLIC_SIMPLEHASH_API_KEY:', process.env.NEXT_PUBLIC_SIMPLEHASH_API_KEY ? 'Set' : 'Not set');
   
-  if (!process.env.NEXT_PUBLIC_SIMPLEHASH_API_KEY) {
-    console.error('SimpleHash API key is not set');
-    return address;
-  }
-
   try {
-    const url = `https://api.simplehash.com/api/v0/ens/reverse_lookup?wallet_addresses=${address}`;
-    console.log(`Fetching from URL: ${url}`);
-    const response = await fetch(url, {
-      headers: {
-        'X-API-KEY': SIMPLEHASH_API_KEY || '',
-      },
+    const data = await callSimpleHash('ens/reverse_lookup', {
+      wallet_addresses: address
     });
-
-    if (!response.ok) {
-      console.error(`HTTP error! status: ${response.status}`);
-      return address; // Return the original address if there's an error
-    }
-
-    const data = await response.json();
-    console.log(`SimpleHash API response:`, data);
 
     if (Array.isArray(data) && data.length > 0 && data[0].ens) {
       console.log(`ENS domain found: ${data[0].ens}`);
@@ -332,4 +266,47 @@ export async function resolveENS(address: string): Promise<string> {
     console.error('Error resolving ENS:', error);
     return address;
   }
+}
+
+export function getContractAddressFromOGName(ogName: string): string {
+  const situsOGs = getSitusOGs();
+  const situsOG = situsOGs.find(og => og.name === ogName || og.name === `.${ogName}`);
+  if (!situsOG) {
+    throw new Error(`No matching Situs OG found for the given OG name: ${ogName}`);
+  }
+  return situsOG.contractAddress;
+}
+
+export async function checkUserOGs(walletAddress: string, contractAddresses: string[]) {
+  console.log("checkUserOGs called with:", walletAddress, contractAddresses);
+
+  try {
+    const params = {
+      chains: 'base',
+      wallet_addresses: walletAddress,
+      contract_addresses: contractAddresses.join(',')
+    };
+    console.log("Params being sent to SimpleHash:", params);
+
+    const data = await callSimpleHash('nfts/owners', params);
+    
+    console.log("SimpleHash API response:", data);
+
+    // The API should only return NFTs from the specified contracts
+    const ownedOGs = data.nfts.map(nft => nft.contract_address);
+    console.log("Owned Situs OG contracts:", ownedOGs);
+
+    return ownedOGs;
+  } catch (error) {
+    console.error("Error in checkUserOGs:", error);
+    return []; // Return an empty array if there's an error
+  }
+}
+
+export async function getNFTMetadata(chain: string, contractAddress: string, tokenId: string) {
+  return callSimpleHash(`nfts/${chain}/${contractAddress}/${tokenId}`, {});
+}
+
+export async function getCollectionMetadata(chain: string, contractAddress: string) {
+  return callSimpleHash(`nfts/collections/${chain}/${contractAddress}`, {});
 }

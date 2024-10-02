@@ -4,7 +4,7 @@ interface PageProps {
   params: { situs: string }
 }
 
-export default function SitusPage({ params }: PageProps): ReactNode {
+export default function CurrenciesPage({ params }: PageProps): ReactNode {
   return (
     <div>
       <h1>{params.situs} OG</h1>

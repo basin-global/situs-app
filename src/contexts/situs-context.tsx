@@ -1,43 +1,74 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import { getSitusOGs } from '@/config/situs';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { SitusOG, getSitusOGs } from '@/config/situs';
+import { checkUserOGs } from '@/utils/simplehash';
 
 interface SitusContextType {
-  currentSitus: string;
+  currentSitus: string | null;
   setCurrentSitus: (situs: string) => void;
+  situsOGs: SitusOG[];
+  userOGs: SitusOG[];
+  otherOGs: SitusOG[];
+  getOGByName: (name: string) => SitusOG | undefined;
+  isLoading: boolean;
+  fetchUserOGs: (walletAddress: string) => Promise<void>;
 }
 
 const SitusContext = createContext<SitusContextType | undefined>(undefined);
 
 export function SitusProvider({ children }: { children: React.ReactNode }) {
-  const [currentSitus, setCurrentSitus] = useState<string>('');
-  const router = useRouter();
-  const pathname = usePathname();
+  const [currentSitus, setCurrentSitus] = useState<string | null>(null);
+  const [userOGs, setUserOGs] = useState<SitusOG[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [situsOGs, setSitusOGs] = useState<SitusOG[]>([]);
 
   useEffect(() => {
-    const situsOGs = getSitusOGs();
-    const validSitusNames = situsOGs.map(og => og.name.replace('.', ''));
-    
-    const pathParts = pathname.split('/').filter(Boolean);
-    const currentPathSitus = pathParts[0];
+    getSitusOGs().then(setSitusOGs).catch(error => {
+      console.error('Error fetching OGs:', error);
+      setSitusOGs([]);
+    });
+  }, []);
 
-    if (validSitusNames.includes(currentPathSitus)) {
-      setCurrentSitus(currentPathSitus);
-      localStorage.setItem('currentSitus', currentPathSitus);
-    } else if (pathname === '/' || pathname === '/profile') {
-      // Reset currentSitus when on home page or profile page
-      setCurrentSitus('');
-      localStorage.removeItem('currentSitus');
-    } else if (currentSitus && !pathname.startsWith('/profile')) {
-      // Only redirect if not on the home page, not on the profile page, and a currentSitus is set
-      router.push(`/${currentSitus}${pathname}`);
+  const otherOGs = useMemo(() => {
+    return situsOGs.filter(og => !userOGs.some(userOg => userOg.contractAddress === og.contractAddress));
+  }, [situsOGs, userOGs]);
+
+  const fetchUserOGs = useCallback(async (walletAddress: string) => {
+    setIsLoading(true);
+    try {
+      const contractAddresses = situsOGs.map(og => og.contractAddress).join(',');
+      const ownedContracts = await checkUserOGs(walletAddress, contractAddresses);
+      const userOwnedOGs = situsOGs.filter(og => ownedContracts.includes(og.contractAddress));
+      setUserOGs(userOwnedOGs);
+    } catch (error) {
+      console.error('Error checking user OGs:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [pathname, currentSitus, router]);
+  }, [situsOGs]);
+
+  const getOGByName = useCallback((name: string) => {
+    return situsOGs.find(og => og.name === name || og.name === `.${name}`);
+  }, [situsOGs]);
+
+  const setCurrentSitusWithDot = useCallback((situs: string) => {
+    setCurrentSitus(situs.startsWith('.') ? situs : `.${situs}`);
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    currentSitus, 
+    setCurrentSitus: setCurrentSitusWithDot, 
+    situsOGs, 
+    userOGs, 
+    otherOGs, 
+    getOGByName,
+    isLoading,
+    fetchUserOGs
+  }), [currentSitus, setCurrentSitusWithDot, situsOGs, userOGs, otherOGs, getOGByName, isLoading, fetchUserOGs]);
 
   return (
-    <SitusContext.Provider value={{ currentSitus, setCurrentSitus }}>
+    <SitusContext.Provider value={contextValue}>
       {children}
     </SitusContext.Provider>
   );

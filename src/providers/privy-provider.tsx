@@ -6,13 +6,8 @@ import { supportedChains } from '@/config/chains';
 export function PrivyProviderWrapper({ children }: { children: React.ReactNode }) {
   return (
     <PrivyProvider
-      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID || ''}
+      appId="cm1dmgstc06htj0hfahsvl6n1"
       config={{
-        loginMethods: ['email', 'wallet'],
-        appearance: {
-          theme: 'light',
-          accentColor: '#676FFF',
-        },
         defaultChain: supportedChains.find(chain => chain.id === 8453), // Base
         supportedChains: supportedChains,
       }}

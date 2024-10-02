@@ -1,3 +1,7 @@
+// This API route fetches accounts for a specific OG from the database, NOT directly from the blockchain.
+// The database is periodically updated with blockchain data via a separate process.
+// See src/app/api/update-database/route.ts for the update process.
+
 import { NextResponse } from 'next/server';
 import { getAccountsForOG } from '@/lib/database';
 

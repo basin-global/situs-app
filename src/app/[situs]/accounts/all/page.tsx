@@ -5,17 +5,27 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { fetchNFTsByContract, NFT } from '@/utils/simplehash'
-import { getSitusOGByName } from '@/config/situs'
+import { useSitus } from '@/contexts/situs-context'
 import { Input } from '@/components/ui/input'
 import debounce from 'lodash/debounce'
 import { AccountsNavigation } from '@/components/accounts-navigation'
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 const ITEMS_PER_PAGE = 40
 
-export default function AllAccountsPage({ params }: { params: { situs: string } }) {
+export default function AllAccountsPageWrapper({ params }: { params: { situs: string } }) {
+  return (
+    <ErrorBoundary>
+      <AllAccountsPage params={params} />
+    </ErrorBoundary>
+  );
+}
+
+function AllAccountsPage({ params }: { params: { situs: string } }) {
+  console.log('AllAccountsPage rendered with situs:', params.situs);
   const router = useRouter()
   const searchParams = useSearchParams()
-  const situs = params.situs as string
+  const { currentSitus, setCurrentSitus, getOGByName } = useSitus()
   const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [nfts, setNfts] = useState<NFT[]>([])
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -23,12 +33,37 @@ export default function AllAccountsPage({ params }: { params: { situs: string } 
   const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '')
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm)
   const [hasMore, setHasMore] = useState(true)
+  const [initialFetchDone, setInitialFetchDone] = useState(false)
 
-  const situsOG = getSitusOGByName(params.situs)
+  const [situsOG, setSitusOG] = useState<any>(null)
 
-  if (!situsOG) {
-    return <div>Invalid situs specified.</div>
-  }
+  useEffect(() => {
+    if (params.situs !== currentSitus) {
+      setCurrentSitus(params.situs);
+    }
+  }, [params.situs, currentSitus, setCurrentSitus]);
+
+  useEffect(() => {
+    async function loadSitusOG() {
+      try {
+        console.log('Loading Situs OG for:', currentSitus);
+        const og = await getOGByName(currentSitus || '');
+        if (!og) {
+          console.error('No Situs OG found for:', currentSitus);
+          setErrorMessage(`No Situs OG found for: ${currentSitus}`);
+        } else {
+          console.log('Loaded Situs OG:', og);
+          setSitusOG(og);
+        }
+      } catch (error) {
+        console.error('Error loading SitusOG:', error);
+        setErrorMessage(`Failed to load Situs OG information: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    if (currentSitus) {
+      loadSitusOG();
+    }
+  }, [currentSitus, getOGByName]);
 
   const fetchNFTs = useCallback(async () => {
     if (isLoading || !situsOG) return;
@@ -37,7 +72,7 @@ export default function AllAccountsPage({ params }: { params: { situs: string } 
       console.log('Fetching NFTs for contract:', situsOG.contractAddress);
       const result = await fetchNFTsByContract(situsOG.contractAddress, cursor, ITEMS_PER_PAGE)
       console.log('Fetched NFTs:', result.nfts.length);
-      setNfts(prev => [...prev, ...result.nfts.filter((nft: NFT) => !prev.some(p => p.id === nft.id))])
+      setNfts(prev => [...prev, ...result.nfts])
       setCursor(result.next_cursor || undefined)
       setHasMore(!!result.next_cursor)
     } catch (error) {
@@ -45,8 +80,15 @@ export default function AllAccountsPage({ params }: { params: { situs: string } 
       setErrorMessage(error instanceof Error ? error.message : 'Unknown error occurred')
     } finally {
       setIsLoading(false)
+      setInitialFetchDone(true)
     }
   }, [cursor, isLoading, situsOG])
+
+  useEffect(() => {
+    if (!initialFetchDone && situsOG) {
+      fetchNFTs();
+    }
+  }, [fetchNFTs, initialFetchDone, situsOG]);
 
   const filteredNFTs = useMemo(() => {
     return nfts.filter(nft => 
@@ -58,9 +100,9 @@ export default function AllAccountsPage({ params }: { params: { situs: string } 
   const debouncedSearch = useCallback(
     debounce((search: string) => {
       setDebouncedSearchTerm(search)
-      router.push(`/${situs}/accounts/all?search=${encodeURIComponent(search)}`, { scroll: false })
+      router.push(`/${params.situs}/accounts/all?search=${encodeURIComponent(search)}`, { scroll: false })
     }, 300),
-    [situs, router]
+    [params.situs, router]
   )
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,12 +123,7 @@ export default function AllAccountsPage({ params }: { params: { situs: string } 
     }
   }, [fetchNFTs, isLoading, hasMore])
 
-  useEffect(() => {
-    if (nfts.length === 0) {
-      fetchNFTs();
-    }
-  }, [fetchNFTs, nfts.length]);
-
+  if (!situsOG) return <div>Loading Situs OG information...</div>
   if (errorMessage) return <div>Failed to load NFTs: {errorMessage}</div>
 
   const NFTGrid = ({ nfts }: { nfts: NFT[] }) => (
@@ -144,10 +181,12 @@ export default function AllAccountsPage({ params }: { params: { situs: string } 
           </button>
         )}
       </div>
-      {filteredNFTs.length > 0 ? (
+      {!initialFetchDone || isLoading && nfts.length === 0 ? (
+        <p>Loading NFTs...</p>
+      ) : filteredNFTs.length > 0 ? (
         <NFTGrid nfts={filteredNFTs} />
       ) : (
-        <p>{isLoading ? 'Loading NFTs...' : 'No NFTs found for this contract.'}</p>
+        <p>No NFTs found for this contract.</p>
       )}
       {hasMore && (
         <button 

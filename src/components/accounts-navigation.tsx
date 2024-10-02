@@ -1,5 +1,10 @@
 'use client'
 
+// AccountsNavigation Component
+// This component renders a navigation menu for account-related pages within a Situs OG.
+// It displays links for Accounts, My Accounts, Create Account, and All Accounts.
+// The component highlights the current active page and uses the current Situs context for generating links.
+
 import { Button } from "@/components/ui/button"
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -10,28 +15,27 @@ export function AccountsNavigation() {
   const { currentSitus } = useSitus()
 
   const navItems = [
-    { href: '/accounts/mine', label: 'Mine' },
-    { href: '/accounts/create', label: 'Create' },
-    { href: '/accounts/all', label: 'All' },
+    { href: 'accounts/mine', label: 'My Accounts' },
+    { href: 'accounts/create', label: 'Create Account' },
+    { href: 'accounts/all', label: 'All Accounts' },
   ]
 
   return (
-    <nav className="flex space-x-4 mb-6">
-      {navItems.map((item) => {
-        const fullHref = `/${currentSitus}${item.href}`
-        const isActive = pathname === fullHref
-
-        return (
-          <Link key={item.href} href={fullHref} passHref>
-            <Button
-              variant={isActive ? "default" : "outline"}
-              className={isActive ? "pointer-events-none" : ""}
-            >
-              {item.label}
-            </Button>
-          </Link>
-        )
-      })}
+    <nav className="flex flex-col space-y-2">
+      {navItems.map((item) => (
+        <Link 
+          key={item.href} 
+          href={`/${currentSitus}/${item.href}`}
+          passHref
+        >
+          <Button 
+            variant="ghost" 
+            className={`w-full justify-start ${pathname.includes(item.href) ? 'bg-accent text-accent-foreground' : ''}`}
+          >
+            {item.label}
+          </Button>
+        </Link>
+      ))}
     </nav>
-  )
+  );
 }

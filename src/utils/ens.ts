@@ -1,10 +1,10 @@
-const SIMPLEHASH_API_KEY = process.env.NEXT_PUBLIC_SIMPLEHASH_API_KEY;
+const SIMPLEHASH_API_KEY = process.env.SIMPLEHASH_API_KEY;
 
 export async function resolveENS(address: string): Promise<string> {
   console.log(`resolveENS function called with address: ${address}`);
-  console.log('NEXT_PUBLIC_SIMPLEHASH_API_KEY:', process.env.NEXT_PUBLIC_SIMPLEHASH_API_KEY ? 'Set' : 'Not set');
+  console.log('SIMPLEHASH_API_KEY:', process.env.SIMPLEHASH_API_KEY ? 'Set' : 'Not set');
   
-  if (!process.env.NEXT_PUBLIC_SIMPLEHASH_API_KEY) {
+  if (!process.env.SIMPLEHASH_API_KEY) {
     console.error('SimpleHash API key is not set');
     return address;
   }

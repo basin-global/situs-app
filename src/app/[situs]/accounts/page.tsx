@@ -18,24 +18,10 @@ export default function AccountsPage({ params }: PageProps) {
     }
   }, [params.situs, currentSitus, setCurrentSitus])
 
-  const accountLinks = [
-    { href: '/accounts/mine', label: 'My Accounts' },
-    { href: '/accounts/create', label: 'Create Account' },
-    { href: '/accounts/all', label: 'All Accounts' },
-  ]
-
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Accounts</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {accountLinks.map((link) => (
-          <Link key={link.href} href={`/${currentSitus || params.situs}${link.href}`} passHref>
-            <Button variant="outline" className="w-full h-24 text-lg">
-              {link.label}
-            </Button>
-          </Link>
-        ))}
-      </div>
+    <div className="bg-background text-foreground min-h-screen">
+      <h1 className="text-primary text-2xl font-bold mb-4">Accounts</h1>
+      {/* Content removed */}
     </div>
   )
 }

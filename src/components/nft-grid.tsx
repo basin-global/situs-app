@@ -1,5 +1,8 @@
 'use client'
 
+// NFTGrid Component
+// Designed for [situs] Accounts 721 layout but could maybe be used for Assets ( & Zora)
+
 import Link from 'next/link';
 import { NFT } from '@/utils/simplehash';
 import { useParams } from 'next/navigation';

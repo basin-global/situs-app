@@ -1,7 +1,11 @@
+// ConnectedAccount Component
+// Displays the currently connected user's account information.
+// It shows either the ENS name (if available) or a truncated Ethereum address.
+// This component is typically used in headers or user profile sections to indicate the active account.
+
 import React, { useEffect, useState } from 'react';
 import { usePrivy } from '@privy-io/react-auth';
 import { resolveENS } from '@/utils/simplehash';
-import SitusOGAbi from "@/abi/SitusOG.json";
 
 function truncateAddress(address: string): string {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
