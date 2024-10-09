@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
-import { ethers, Contract } from 'ethers'
+import { ethers, Contract, JsonRpcSigner } from 'ethers'
 import { toast } from 'react-toastify'
 import { useOG } from '@/contexts/og-context'
 import OGAbi from '@/abi/SitusOG.json'
@@ -38,13 +38,14 @@ export default function CreateAccountPage() {
       
       // Check if the provider is connected to the correct network
       const network = await provider.getNetwork();
-      if (network.chainId !== 8453) {
+      if (network.chainId !== 8453n) { // Note the 'n' suffix for BigInt
         console.error('Wrong network detected. Expected Base (chainId: 8453), got:', network.chainId);
         setIsLoading(false);
         return;
       }
 
-      const contract = new Contract(currentOG.contract_address, OGAbi, provider);
+      const signer = await provider.getSigner();
+      const contract = new Contract(currentOG.contract_address, OGAbi, signer);
 
       const [priceWei, isBuyingEnabled] = await Promise.all([
         contract.price(),
@@ -174,18 +175,18 @@ export default function CreateAccountPage() {
     try {
       const provider = await getEthersProvider()
       const network = await provider.getNetwork()
-      if (network.chainId !== 8453) {
+      if (network.chainId !== 8453n) { // Note the 'n' suffix for BigInt
         toast.error('This operation is only available on the Base network. Please switch to Base in your wallet.')
         setIsLoading(false)
         return
       }
 
       console.log('Starting account creation process')
-      const signer = provider.getSigner()
+      const signer = await provider.getSigner()
       console.log('Signer obtained:', signer)
       console.log('Contract address:', currentOG.contract_address)
       console.log('ABI functions:', OGAbi.filter(item => item.type === 'function').map(item => item.name))
-      const contract = new Contract(currentOG.contract_address, OGAbi, signer as unknown as ethers.Signer)
+      const contract = new Contract(currentOG.contract_address, OGAbi, signer)
       console.log('Full contract object:', contract)
       
       console.log('Mint function:', contract.mint)
@@ -220,7 +221,7 @@ export default function CreateAccountPage() {
       transactionToast = toast.info(`Transaction sent. Waiting for confirmation...`, { autoClose: false })
       
       // Wait for the transaction to be mined
-      await provider.waitForTransaction(tx.hash, 1) // Wait for 1 confirmation
+      await tx.wait(1) // Wait for 1 confirmation
       console.log('Transaction confirmed')
       
       if (transactionToast) toast.dismiss(transactionToast);
