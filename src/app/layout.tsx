@@ -5,7 +5,7 @@ import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './globals.css'
 import Header from '@/components/header'
-import { SitusProvider } from '@/contexts/situs-context'
+import { OGProvider } from '@/contexts/og-context'  // Changed from SitusProvider to OGProvider
 import { PrivyProviderWrapper } from '@/providers/privy-provider'
 import { spaceGrotesk, spaceMono } from './fonts'
 import Footer from '@/components/footer'
@@ -18,14 +18,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${spaceMono.variable}`}>
-      <body className="font-sans">
+      <body className="font-sans bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark min-h-screen flex flex-col">
         <PrivyProviderWrapper>
-          <SitusProvider>
+          <OGProvider>
             <Header />
             <ToastContainer />
-            {children}
+            <main className="flex-grow">
+              {children}
+            </main>
             <Footer />
-          </SitusProvider>
+          </OGProvider>
         </PrivyProviderWrapper>
       </body>
     </html>

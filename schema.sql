@@ -17,7 +17,9 @@ BEGIN
       id SERIAL PRIMARY KEY,
       token_id NUMERIC(78, 0) NOT NULL UNIQUE,
       account_name VARCHAR(255) NOT NULL UNIQUE,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      tba_address VARCHAR(42) UNIQUE,
+      owner_of VARCHAR(42)
     )', table_name);
 END;
 $$ LANGUAGE plpgsql;
@@ -31,7 +33,9 @@ CREATE OR REPLACE FUNCTION get_accounts_for_og(og_name VARCHAR) RETURNS TABLE (
   id INT,
   token_id NUMERIC(78, 0),
   account_name VARCHAR(255),
-  created_at TIMESTAMP
+  created_at TIMESTAMP,
+  tba_address VARCHAR(42),
+  owner_of VARCHAR(42)
 ) AS $$
 DECLARE
   table_name VARCHAR;

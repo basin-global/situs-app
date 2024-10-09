@@ -13,7 +13,7 @@ interface NFTGridProps {
 
 export function NFTGrid({ nfts }: NFTGridProps) {
   const params = useParams();
-  const situs = params.situs as string;
+  const situs = params.og as string;
   const contractAddress = params['contract-address'] as string;
 
   return (

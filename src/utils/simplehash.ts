@@ -1,4 +1,4 @@
-import { getSitusOGs } from '../config/situs';
+import { getOGs } from '../config/og';
 import { getChainBySimplehashName } from '@/config/chains';
 
 // Updated NFT interface
@@ -269,12 +269,12 @@ export async function resolveENS(address: string): Promise<string> {
 }
 
 export function getContractAddressFromOGName(ogName: string): string {
-  const situsOGs = getSitusOGs();
-  const situsOG = situsOGs.find(og => og.name === ogName || og.name === `.${ogName}`);
-  if (!situsOG) {
+  const OGs = getOGs();
+  const OG = OGs.find(og => og.name === ogName || og.name === `.${ogName}`);
+  if (!OG) {
     throw new Error(`No matching Situs OG found for the given OG name: ${ogName}`);
   }
-  return situsOG.contractAddress;
+  return OG.contractAddress;
 }
 
 export async function checkUserOGs(walletAddress: string, contractAddresses: string[]) {

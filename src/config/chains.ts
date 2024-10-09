@@ -2,6 +2,7 @@ import { Chain } from 'viem';
 
 interface PrivyChain extends Chain {
   simplehashName: string;
+  reservoirName: string;  // Add this line
   isTestnet: boolean;
 }
 
@@ -10,6 +11,7 @@ export const supportedChains: PrivyChain[] = [
     id: 1,
     name: 'Ethereum',
     simplehashName: 'ethereum',
+    reservoirName: '',  // Empty string for the default Ethereum chain
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://eth-mainnet.g.alchemy.com/v2/your-api-key'] },
@@ -23,6 +25,7 @@ export const supportedChains: PrivyChain[] = [
     id: 10,
     name: 'Optimism',
     simplehashName: 'optimism',
+    reservoirName: 'optimism',  // Add this line
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://mainnet.optimism.io'] },
@@ -36,6 +39,7 @@ export const supportedChains: PrivyChain[] = [
     id: 42161,
     name: 'Arbitrum One',
     simplehashName: 'arbitrum',
+    reservoirName: 'arbitrum',  // Add this line
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://arb1.arbitrum.io/rpc'] },
@@ -49,6 +53,7 @@ export const supportedChains: PrivyChain[] = [
     id: 7777777,
     name: 'Zora',
     simplehashName: 'zora',
+    reservoirName: 'zora',  // Add this line
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://rpc.zora.energy'] },
@@ -62,6 +67,7 @@ export const supportedChains: PrivyChain[] = [
     id: 42220,
     name: 'Celo',
     simplehashName: 'celo',
+    reservoirName: null,  // Set to null as Reservoir doesn't support Celo yet
     nativeCurrency: { name: 'CELO', symbol: 'CELO', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://forno.celo.org'] },
@@ -75,6 +81,7 @@ export const supportedChains: PrivyChain[] = [
     id: 137,
     name: 'Polygon',
     simplehashName: 'polygon',
+    reservoirName: 'polygon',  // Add this line
     nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://polygon-rpc.com'] },
@@ -88,6 +95,7 @@ export const supportedChains: PrivyChain[] = [
     id: 8453,
     name: 'Base',
     simplehashName: 'base',
+    reservoirName: 'base',  // Add this line
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://mainnet.base.org'] },
@@ -101,3 +109,6 @@ export const supportedChains: PrivyChain[] = [
 
 export const getChainById = (id: number) => supportedChains.find(chain => chain.id === id);
 export const getChainBySimplehashName = (name: string) => supportedChains.find(chain => chain.simplehashName === name);
+
+// Add this new function
+export const getChainByReservoirName = (name: string) => supportedChains.find(chain => chain.reservoirName === name);

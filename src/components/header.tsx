@@ -7,13 +7,13 @@ import { usePrivy } from '@privy-io/react-auth'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { ChevronDown } from 'lucide-react'
-import { useSitus } from '@/contexts/situs-context'
-import { SitusChooser } from './situs-chooser'
+ import { useOG } from '@/contexts/og-context'
+import { OGChooser } from './og-chooser'
 import { Navigation } from './navigation'  // Import the new Navigation component
 
 export default function Header() {
   const { login, authenticated, user, logout } = usePrivy()
-  const { currentSitus } = useSitus()
+  const { currentOG } = useOG()
   const pathname = usePathname()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
@@ -38,13 +38,13 @@ export default function Header() {
 
   const truncateAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`
 
-  const shouldShowSitusChooserAndNavigation = !isHomePage && !isProfilePage
+  const shouldShowOGChooserAndNavigation = !isHomePage && !isProfilePage
 
   return (
     <header className="bg-gradient-to-r from-secondary to-primary text-white py-6 shadow-lg">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center">
-          {/* Left side: Logo and SitusChooser */}
+          {/* Left side: Logo and OGChooser */}
           <div className="flex items-center space-x-4">
             <Link href="/" className="flex items-center">
               <Image 
@@ -74,16 +74,16 @@ export default function Header() {
                 </div>
               )}
             </Link>
-            {shouldShowSitusChooserAndNavigation && (
+            {shouldShowOGChooserAndNavigation && (
               <div className="w-auto">
-                <SitusChooser />
+                <OGChooser />
               </div>
             )}
           </div>
           
           {/* Right side: Navigation, Login button or user info */}
           <div className="flex items-center space-x-6">
-            {shouldShowSitusChooserAndNavigation && <Navigation />}
+            {shouldShowOGChooserAndNavigation && <Navigation />}
             {!authenticated ? (
               <Button 
                 variant="outline" 

@@ -1,7 +1,8 @@
-import { createPublicClient, http, PublicClient, Address, parseAbi, Chain, Transport, HttpTransport } from 'viem';
+import { createPublicClient, http, parseAbi } from 'viem';
 import { base } from 'viem/chains';
 import { sql } from '@vercel/postgres';
-import SitusOGABI from '../abi/SitusOG.json';
+import OGABI from '@/abi/SitusOG.json';  // Update this line
+import { TokenboundClient } from '@tokenbound/sdk';
 
 const FACTORY_ADDRESS = '0x67c814835E1920324634Fd6da416a0E79c949970' as const;
 const FACTORY_ABI = parseAbi([
@@ -58,7 +59,9 @@ export async function updateOGs() {
         CREATE TABLE IF NOT EXISTS situs_accounts_${sanitizedOG} (
           token_id BIGINT PRIMARY KEY,
           account_name TEXT NOT NULL,
-          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          tba_address VARCHAR(42) UNIQUE,
+          owner_of VARCHAR(42)
         )
       `);
     }
@@ -74,7 +77,10 @@ export async function getAccountsForOG(og: string) {
   try {
     const sanitizedOG = sanitizeOGName(og);
     const tableName = `situs_accounts_${sanitizedOG}`;
-    const result = await sql.query(`SELECT token_id, account_name, created_at FROM "${tableName}"`);
+    const result = await sql.query(`
+      SELECT token_id, account_name, created_at
+      FROM "${tableName}"
+    `);
     return result.rows;
   } catch (error) {
     console.error(`Error fetching accounts for OG ${og}:`, error);
@@ -88,7 +94,7 @@ async function fetchAccountsForOG(client: PublicClient, ogAddress: Address, ogNa
     console.log(`3.1: Getting total supply for ${ogName}`);
     const totalSupply = await client.readContract({
       address: ogAddress,
-      abi: SitusOGABI,
+      abi: OGABI,
       functionName: 'totalSupply',
     }) as bigint;
 
@@ -106,7 +112,7 @@ async function fetchAccountsForOG(client: PublicClient, ogAddress: Address, ogNa
         console.log(`3.2: Fetching domain name for token ID ${i} for ${ogName}`);
         const name = await client.readContract({
           address: ogAddress,
-          abi: SitusOGABI,
+          abi: OGABI,
           functionName: 'domainIdsNames',
           args: [i],
         }) as string;
@@ -125,6 +131,43 @@ async function fetchAccountsForOG(client: PublicClient, ogAddress: Address, ogNa
   } catch (error) {
     console.error(`Error in fetchAccountsForOG for ${ogName}:`, error);
     throw error;
+  }
+}
+
+async function getTBAAddress(tokenId: bigint, contractAddress: Address): Promise<string> {
+  try {
+    const tokenboundClient = new TokenboundClient({
+      chainId: base.id,
+      publicClient: createPublicClient({
+        chain: base,
+        transport: http(),
+      }),
+    });
+
+    const account = await tokenboundClient.getAccount({
+      tokenContract: contractAddress,
+      tokenId: tokenId.toString(),
+    });
+
+    return account;
+  } catch (error) {
+    console.error(`Error getting TBA address for token ${tokenId} at ${contractAddress}:`, error);
+    return '';
+  }
+}
+
+async function getTokenOwner(client: PublicClient, contractAddress: Address, tokenId: bigint): Promise<string> {
+  try {
+    const owner = await client.readContract({
+      address: contractAddress,
+      abi: OGABI,
+      functionName: 'ownerOf',
+      args: [tokenId],
+    }) as string;
+    return owner;
+  } catch (error) {
+    console.error(`Error getting owner for token ${tokenId} at ${contractAddress}:`, error);
+    return '';
   }
 }
 
@@ -165,13 +208,32 @@ export async function updateSitusDatabase() {
         `;
         
         const sanitizedOG = sanitizeOGName(og);
-        // Ensure the accounts table exists
+        // Ensure the accounts table exists with the new columns
         await sql.query(`
           CREATE TABLE IF NOT EXISTS situs_accounts_${sanitizedOG} (
             token_id BIGINT PRIMARY KEY,
             account_name TEXT NOT NULL,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            tba_address VARCHAR(42) UNIQUE,
+            owner_of VARCHAR(42)
           )
+        `);
+
+        // Add new columns if they don't exist
+        await sql.query(`
+          DO $$
+          BEGIN
+            BEGIN
+              ALTER TABLE situs_accounts_${sanitizedOG} ADD COLUMN tba_address VARCHAR(42);
+            EXCEPTION
+              WHEN duplicate_column THEN NULL;
+            END;
+            BEGIN
+              ALTER TABLE situs_accounts_${sanitizedOG} ADD COLUMN owner_of VARCHAR(42);
+            EXCEPTION
+              WHEN duplicate_column THEN NULL;
+            END;
+          END $$;
         `);
 
         // Fetch all accounts for this OG
@@ -180,27 +242,33 @@ export async function updateSitusDatabase() {
 
         // Get existing accounts
         const existingAccounts = await sql.query(`
-          SELECT token_id, account_name FROM situs_accounts_${sanitizedOG}
+          SELECT token_id, account_name, tba_address, owner_of FROM situs_accounts_${sanitizedOG}
         `);
-        const existingAccountMap = new Map(existingAccounts.rows.map(row => [row.token_id, row.account_name]));
+        const existingAccountMap = new Map(existingAccounts.rows.map(row => [row.token_id, { name: row.account_name, tba: row.tba_address, owner: row.owner_of }]));
 
         // Insert or update accounts
         for (const account of accounts) {
           const existingAccount = existingAccountMap.get(account.token_id);
+          const tbaAddress = await getTBAAddress(BigInt(account.token_id), contractAddress);
+          const owner = await getTokenOwner(client, contractAddress, BigInt(account.token_id));
+
           if (!existingAccount) {
             await sql.query(`
-              INSERT INTO situs_accounts_${sanitizedOG} (token_id, account_name)
-              VALUES ($1, $2)
-            `, [account.token_id, account.account_name]);
+              INSERT INTO situs_accounts_${sanitizedOG} (token_id, account_name, tba_address, owner_of)
+              VALUES ($1, $2, $3, $4)
+            `, [account.token_id, account.account_name, tbaAddress, owner]);
             totalNewAccountsAdded++;
-            console.log(`Added new account: ${account.account_name} (${account.token_id}) for OG ${og}`);
-          } else if (existingAccount !== account.account_name) {
-            await sql.query(`
-              UPDATE situs_accounts_${sanitizedOG}
-              SET account_name = $2
-              WHERE token_id = $1
-            `, [account.token_id, account.account_name]);
-            console.log(`Updated account: ${account.account_name} (${account.token_id}) for OG ${og}`);
+            console.log(`Added new account: ${account.account_name} (${account.token_id}) for OG ${og} with TBA: ${tbaAddress}, Owner: ${owner}`);
+          } else {
+            // Update if TBA address or owner has changed
+            if (existingAccount.tba !== tbaAddress || existingAccount.owner !== owner) {
+              await sql.query(`
+                UPDATE situs_accounts_${sanitizedOG}
+                SET tba_address = $2, owner_of = $3
+                WHERE token_id = $1
+              `, [account.token_id, tbaAddress, owner]);
+              console.log(`Updated account: ${account.account_name} (${account.token_id}) for OG ${og} with TBA: ${tbaAddress}, Owner: ${owner}`);
+            }
           }
         }
 

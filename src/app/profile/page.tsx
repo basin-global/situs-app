@@ -3,7 +3,7 @@
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { UserOGs } from "@/components/UserOGs"; // Add this import
+import { isAdmin } from '@/utils/adminUtils';
 
 export default function ProfilePage() {
   const { ready, authenticated, user, logout, createWallet, linkWallet } = usePrivy();
@@ -47,14 +47,7 @@ export default function ProfilePage() {
     }
   };
 
-  const isAdmin = (address: string | undefined) => {
-    const adminAddresses = [
-      '0xEAF9830bB7a38A3CEbcaCa3Ff9F626C424F3fB55',
-      '0x79c2D72552Df1C5d551B812Eca906a90Ce9D840A',
-      '0xcb598dD4770b06E744EbF5B31Bb3D6a538FBE4fE'
-    ];
-    return address ? adminAddresses.map(a => a.toLowerCase()).includes(address.toLowerCase()) : false;
-  };
+  const userIsAdmin = isAdmin(user?.wallet?.address);
 
   const updateDatabase = async () => {
     try {
@@ -143,10 +136,9 @@ export default function ProfilePage() {
         
         {/* Add UserOGs component here */}
         <div className="mt-8 mb-8 bg-background p-6 rounded-lg shadow-inner">
-          <UserOGs />
         </div>
         
-        {isAdmin(user?.wallet?.address) && (
+        {userIsAdmin && (
           <div className="mt-8">
             <h2 className="text-2xl font-bold mb-4">SITUS Admin</h2>
             <div className="flex space-x-4 mb-4">
