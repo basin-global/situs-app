@@ -119,7 +119,7 @@ async function fetchAccountsForOG(client: PublicClient, ogAddress: Address, ogNa
 
         console.log(`Domain name ${name} fetched for token ID ${i} of ${ogName}`);
 
-        accounts.push({ token_id: i.toString(), account_name: name });
+        accounts.push({ token_id: Number(i), account_name: name });
       } catch (error) {
         console.error(`Error fetching domain for token ID ${i} of ${ogName}:`, error);
         // Continue to the next token if there's an error
@@ -256,7 +256,7 @@ export async function updateSitusDatabase() {
             await sql.query(`
               INSERT INTO situs_accounts_${sanitizedOG} (token_id, account_name, tba_address, owner_of)
               VALUES ($1, $2, $3, $4)
-            `, [account.token_id, account.account_name, tbaAddress, owner]);
+            `, [Number(account.token_id), account.account_name, tbaAddress, owner]);
             totalNewAccountsAdded++;
             console.log(`Added new account: ${account.account_name} (${account.token_id}) for OG ${og} with TBA: ${tbaAddress}, Owner: ${owner}`);
           } else {
@@ -266,7 +266,7 @@ export async function updateSitusDatabase() {
                 UPDATE situs_accounts_${sanitizedOG}
                 SET tba_address = $2, owner_of = $3
                 WHERE token_id = $1
-              `, [account.token_id, tbaAddress, owner]);
+              `, [Number(account.token_id), tbaAddress, owner]);
               console.log(`Updated account: ${account.account_name} (${account.token_id}) for OG ${og} with TBA: ${tbaAddress}, Owner: ${owner}`);
             }
           }
@@ -317,7 +317,12 @@ export async function getAccountByName(og: string, accountName: string) {
     const sanitizedOG = sanitizeOGName(og);
     const tableName = `situs_accounts_${sanitizedOG}`;
     const result = await sql.query(`
-      SELECT token_id, account_name, created_at, tba_address, owner_of
+      SELECT 
+        CAST(token_id AS DOUBLE PRECISION) as token_id, 
+        account_name, 
+        created_at, 
+        tba_address, 
+        owner_of
       FROM "${tableName}"
       WHERE account_name = $1
       LIMIT 1

@@ -26,7 +26,10 @@ export default function AccountPage({ params }: { params: { og: string; 'account
           }
         }
         const data = await response.json();
-        setAccount(data);
+        setAccount({
+          ...data,
+          token_id: Number(data.token_id) // Ensure token_id is a number
+        });
       } catch (err) {
         console.error('Error fetching account:', err);
         setError(err instanceof Error ? err.message : 'An unknown error occurred');

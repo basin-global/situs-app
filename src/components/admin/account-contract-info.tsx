@@ -10,7 +10,7 @@ const publicClient = createPublicClient({
 });
 
 interface AccountContractInfoProps {
-  token_id: string;
+  token_id: number;
 }
 
 const AccountContractInfo: React.FC<AccountContractInfoProps> = ({ token_id }) => {
