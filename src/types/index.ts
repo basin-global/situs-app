@@ -12,7 +12,7 @@ export interface OG {
   };
   
   export interface OgAccount {
-    token_id: string;
+    token_id: number;  // Changed from string to number
     account_name: string;
     created_at: string;
   }

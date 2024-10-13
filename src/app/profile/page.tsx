@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { isAdmin } from '@/utils/adminUtils';
 
 export default function ProfilePage() {
-  const { ready, authenticated, user, logout, createWallet, linkWallet } = usePrivy();
+  const { ready, authenticated, user, logout, login, createWallet, linkWallet } = usePrivy();
   const { wallets } = useWallets();
   const [ensName, setEnsName] = useState<string | null>(null);
 
@@ -31,7 +31,17 @@ export default function ProfilePage() {
   }
 
   if (!authenticated) {
-    return <div className="text-foreground">Please log in to view your profile.</div>;
+    return (
+      <div className="container mx-auto px-4 py-8 text-center">
+        <p className="text-xl mb-4 text-gray-700 dark:text-gray-300">Please log in to view your profile.</p>
+        <Button 
+          onClick={login}
+          className="bg-green-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition duration-300"
+        >
+          LOGIN
+        </Button>
+      </div>
+    );
   }
 
   const getAccountInfo = (account: any) => {

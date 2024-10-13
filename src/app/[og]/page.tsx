@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useOG } from '@/contexts/og-context';
 import ogData from '@/data/ogs.json';
+import RecentAccounts from '@/components/RecentAccounts';
 
 interface OGData {
   name: string;
@@ -14,7 +15,7 @@ interface OGData {
   website: string;
 }
 
-export default function SitusPage(): ReactNode {
+export default function OgPage(): ReactNode {
   const { currentOG } = useOG();
   const [bannerPath, setBannerPath] = useState<string>('/ogs/banners/basin-banner.jpg');
 
@@ -55,7 +56,7 @@ export default function SitusPage(): ReactNode {
   const og: OGData = (ogData as Record<string, OGData>)[situs] || fallbackOG;
 
   return (
-    <>
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8"> {/* Add this wrapper */}
       <div className="relative w-full h-0 pb-[25%] mb-8 rounded-lg overflow-hidden">
         <Image
           src={bannerPath}
@@ -72,12 +73,12 @@ export default function SitusPage(): ReactNode {
         </div>
       </div>
 
-      <div className="flex mb-8">
-        <div className="flex-grow mr-8">
+      <div className="flex flex-col md:flex-row mb-8">
+        <div className="flex-grow md:mr-8 mb-4 md:mb-0">
           <p className="text-xl text-muted-foreground dark:text-muted-foreground-dark">{og.description}</p>
         </div>
         
-        <div className="bg-muted dark:bg-muted-dark p-4 rounded-lg w-64 flex-shrink-0">
+        <div className="bg-muted dark:bg-muted-dark p-4 rounded-lg w-full md:w-64 flex-shrink-0">
           <Link href={og.website} className="text-accent dark:text-accent-dark hover:underline block mb-2">
             Visit website
           </Link>
@@ -89,9 +90,14 @@ export default function SitusPage(): ReactNode {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="bg-muted dark:bg-muted-dark p-4 rounded-lg shadow">
-          <h3 className="text-lg font-semibold mb-4">Accounts</h3>
-          {/* Placeholder for Accounts component */}
-          <p className="text-muted-foreground dark:text-muted-foreground-dark">Accounts component will be loaded here</p>
+          <h3 className="text-lg font-semibold mb-4">Recent Accounts</h3>
+          <RecentAccounts og={situs} limit={10} />
+          <Link 
+            href={`/${situs}/accounts/all`}
+            className="mt-4 inline-block bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out"
+          >
+            View All Accounts
+          </Link>
         </div>
         <div className="bg-muted dark:bg-muted-dark p-4 rounded-lg shadow">
           <h3 className="text-lg font-semibold mb-4">Assets</h3>
@@ -104,6 +110,6 @@ export default function SitusPage(): ReactNode {
           <p className="text-muted-foreground dark:text-muted-foreground-dark">Currencies component will be loaded here</p>
         </div>
       </div>
-    </>
+    </div>
   );
 }

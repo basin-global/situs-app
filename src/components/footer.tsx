@@ -12,36 +12,45 @@ export default function Footer() {
   const pathname = usePathname()
   const iconSize = 24
 
-  const [darkMode, setDarkMode] = useState<boolean | null>(null)
+  const [darkMode, setDarkMode] = useState(true) // Set default to true for dark mode
   const { authenticated } = usePrivy()
+  const [ethPrice, setEthPrice] = useState<number | null>(null)
 
   useEffect(() => {
-    // Check for system preference
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    setDarkMode(mediaQuery.matches)
+    // Always set dark mode on initial load
+    document.documentElement.classList.add('dark')
+    localStorage.setItem('darkMode', 'true')
 
-    // Listen for changes in system preference
-    const handler = (e: MediaQueryListEvent) => setDarkMode(e.matches)
-    mediaQuery.addEventListener('change', handler)
+    if (authenticated) {
+      // Fetch ETH price
+      const fetchEthPrice = async () => {
+        try {
+          const response = await fetch('/api/eth-price')
+          const data = await response.json()
+          if (data.price) {
+            setEthPrice(data.price)
+          }
+        } catch (error) {
+          console.error('Error fetching ETH price:', error)
+        }
+      }
 
-    return () => mediaQuery.removeEventListener('change', handler)
-  }, [])
+      fetchEthPrice()
+      // Optionally, set up an interval to update the price periodically
+      const interval = setInterval(fetchEthPrice, 5 * 60 * 1000) // Update every minute
 
-  useEffect(() => {
-    if (darkMode === null) return // Skip if darkMode hasn't been set yet
+      return () => clearInterval(interval)
+    }
+  }, [authenticated])
 
-    if (darkMode) {
+  const toggleDarkMode = (value: boolean) => {
+    setDarkMode(value)
+    if (value) {
       document.documentElement.classList.add('dark')
     } else {
       document.documentElement.classList.remove('dark')
     }
-
-    // Optionally, save the user's preference to localStorage
-    localStorage.setItem('darkMode', darkMode.toString())
-  }, [darkMode])
-
-  const toggleDarkMode = (value: boolean) => {
-    setDarkMode(value)
+    localStorage.setItem('darkMode', value.toString())
   }
 
   const isOGPage = pathname.split('/')[1] !== ''
@@ -88,19 +97,26 @@ export default function Footer() {
               </Link>
             )}
           </div>
-          <div className="flex items-center space-x-2">
-            <span 
-              className={`cursor-pointer transition-opacity duration-300 ${darkMode ? 'opacity-100' : 'opacity-50'}`}
-              onClick={() => toggleDarkMode(false)}
-            >
-              ☀️
-            </span>
-            <span 
-              className={`cursor-pointer transition-opacity duration-300 ${darkMode ? 'opacity-50' : 'opacity-100'}`}
-              onClick={() => toggleDarkMode(true)}
-            >
-              🌙
-            </span>
+          <div className="flex flex-col items-center space-y-2">
+            <div className="flex items-center space-x-2">
+              <span 
+                className={`cursor-pointer transition-opacity duration-300 ${darkMode ? 'opacity-50' : 'opacity-100'}`}
+                onClick={() => toggleDarkMode(false)}
+              >
+                ☀️
+              </span>
+              <span 
+                className={`cursor-pointer transition-opacity duration-300 ${darkMode ? 'opacity-100' : 'opacity-50'}`}
+                onClick={() => toggleDarkMode(true)}
+              >
+                🌙
+              </span>
+            </div>
+            {authenticated && ethPrice && (
+              <span className="font-mono text-sm text-gray-400">
+                ETH: ${ethPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              </span>
+            )}
           </div>
         </div>
       </div>

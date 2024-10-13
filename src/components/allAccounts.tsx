@@ -1,15 +1,27 @@
 'use client'
 
-import { useEffect } from 'react'
+import React, { useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useOG } from '@/contexts/og-context'
 
-export default function AllAccounts({ og }: { og: string }) {
+interface AllAccountsProps {
+  og: string
+  searchQuery: string
+}
+
+export default function AllAccounts({ og, searchQuery }: AllAccountsProps) {
   const { accounts, fetchAccounts, isLoading } = useOG()
 
   useEffect(() => {
     fetchAccounts(og)
   }, [og, fetchAccounts])
+
+  const filteredAccounts = useMemo(() => {
+    return accounts.filter(account => 
+      account.account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      account.token_id.toString().includes(searchQuery)
+    )
+  }, [accounts, searchQuery])
 
   if (isLoading) {
     return (
@@ -22,12 +34,9 @@ export default function AllAccounts({ og }: { og: string }) {
   return (
     <div className="bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark p-8">
       <div className="max-w-7xl mx-auto">
-        <h2 className="text-5xl font-mono font-bold mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
-          .{og} Accounts
-        </h2>
-        {accounts.length === 0 && <p>No accounts found.</p>}
+        {filteredAccounts.length === 0 && <p>No accounts found matching your search.</p>}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {accounts.map((account) => (
+          {filteredAccounts.map((account) => (
             <Link
               key={account.token_id}
               href={`/${og}/accounts/name/${account.account_name}`}

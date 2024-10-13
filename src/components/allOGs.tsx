@@ -1,7 +1,8 @@
 'use client'
 
+import React from 'react'
 import { useEffect, useState } from 'react'
-import { OG } from '@/types/situs'
+import { OG } from '@/types' // Updated import statement
 import { getOGs } from '@/config/og'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -18,6 +19,7 @@ export default function AllOGs() {
         const OGs = await getOGs()
         console.log('Fetched OGs:', OGs)
         setOgs(OGs)
+        console.log('OGs state set:', OGs) // Add this line
       } catch (err) {
         setError('Failed to fetch OGs')
         console.error('Error fetching OGs:', err)
@@ -28,6 +30,10 @@ export default function AllOGs() {
 
     fetchOGs()
   }, [])
+
+  useEffect(() => {
+    console.log('OGs in AllOGs component:', ogs);
+  }, [ogs]);
 
   const getOrbPath = (ogName: string) => {
     return `/ogs/orbs/${ogName.replace(/^\./, '')}-orb.png`

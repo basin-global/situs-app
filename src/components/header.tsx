@@ -7,7 +7,7 @@ import { usePrivy } from '@privy-io/react-auth'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { ChevronDown } from 'lucide-react'
- import { useOG } from '@/contexts/og-context'
+import { useOG } from '@/contexts/og-context'
 import { OGChooser } from './og-chooser'
 import { Navigation } from './navigation'  // Import the new Navigation component
 
@@ -20,6 +20,15 @@ export default function Header() {
 
   const isHomePage = pathname === '/'
   const isProfilePage = pathname.startsWith('/profile')
+  const isOGPage = !isHomePage && !isProfilePage
+
+  const logoSrc = isOGPage && currentOG
+    ? `/ogs/orbs/${currentOG.og_name.replace(/^\./, '')}-orb.png`
+    : "/assets/logos/situs-circle.png"
+
+  const logoLink = isOGPage && currentOG
+    ? `/${currentOG.og_name.replace(/^\./, '')}`
+    : "/"
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -46,10 +55,10 @@ export default function Header() {
         <div className="flex justify-between items-center">
           {/* Left side: Logo and OGChooser */}
           <div className="flex items-center space-x-4">
-            <Link href="/" className="flex items-center">
+            <Link href={logoLink} className="flex items-center">
               <Image 
-                src="/assets/logos/situs-circle.png"
-                alt="Situs Protocol" 
+                src={logoSrc}
+                alt={isOGPage && currentOG ? `${currentOG.og_name} OG` : "Situs Protocol"}
                 width={60}
                 height={60}
                 priority={true}

@@ -3,18 +3,22 @@ import { OG } from '@/types/index';
 let cachedOGs: OG[] | null = null;
 
 export async function getOGs(): Promise<OG[]> {
+    console.log('getOGs called, isHardRefresh:', isHardRefresh(), 'cachedOGs:', !!cachedOGs);
     if (cachedOGs && !isHardRefresh()) {
+        console.log('Returning cached OGs:', cachedOGs);
         return cachedOGs;
     }
 
+    console.log('Fetching fresh OGs');
     try {
         const response = await fetch('/api/getOGs', {
-            cache: 'no-store' // This ensures fresh data on fetch
+            cache: 'no-store'
         });
         if (!response.ok) {
             throw new Error('Failed to fetch OGs');
         }
         const data = await response.json();
+        console.log('Fetched OGs from API:', data);
         cachedOGs = data;
         return data;
     } catch (error) {
@@ -31,4 +35,3 @@ function isHardRefresh(): boolean {
 export function clearOGsCache() {
     cachedOGs = null;
 }
-

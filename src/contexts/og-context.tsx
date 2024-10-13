@@ -29,6 +29,7 @@ export function OGProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         const fetchedOGs = await getOGs();
+        console.log('OGs set in context:', fetchedOGs);
         setOGs(fetchedOGs);
       } catch (error) {
         console.error('Error fetching OGs:', error);
@@ -49,6 +50,7 @@ export function OGProvider({ children }: { children: React.ReactNode }) {
         setCurrentOG(ogToSet);
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, OGs]);
 
   // Removed setCurrentOGWithDot function

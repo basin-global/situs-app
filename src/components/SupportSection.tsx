@@ -36,7 +36,7 @@ export default function SupportSection({ logos }: { logos: Logo[] }) {
   return (
     <section className="bg-gradient-to-r from-gray-900 to-gray-800 text-white py-20 px-8 overflow-hidden">
       <h3 className="text-4xl font-mono font-bold mb-12 text-center tracking-wider">
-        With support and tooling from:
+        With support & tooling from:
       </h3>
       <div 
         ref={scrollRef}

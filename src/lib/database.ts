@@ -290,9 +290,18 @@ export async function updateSitusDatabase() {
 }
 
 export async function getAllOGs() {
-  const { rows } = await sql`SELECT * FROM situs_ogs`;
-  return rows;
+  console.log('Database: Executing getAllOGs query...');
+  try {
+    const { rows } = await sql`SELECT * FROM situs_ogs ORDER BY id ASC`;
+    console.log('Database: getAllOGs result:', JSON.stringify(rows, null, 2));
+    console.log('Database: Number of OGs returned:', rows.length);
+    return rows;
+  } catch (error) {
+    console.error('Database: Error in getAllOGs:', error);
+    throw error;
+  }
 }
+
 export async function getOGByName(name: string) {
   const { rows } = await sql`SELECT * FROM situs_ogs WHERE og_name = ${name}`;
   return rows[0];
@@ -301,4 +310,22 @@ export async function getOGByName(name: string) {
 export async function getOGByAddress(address: string) {
   const { rows } = await sql`SELECT * FROM situs_ogs WHERE contract_address = ${address}`;
   return rows[0];
+}
+
+export async function getAccountByName(og: string, accountName: string) {
+  try {
+    const sanitizedOG = sanitizeOGName(og);
+    const tableName = `situs_accounts_${sanitizedOG}`;
+    const result = await sql.query(`
+      SELECT token_id, account_name, created_at, tba_address, owner_of
+      FROM "${tableName}"
+      WHERE account_name = $1
+      LIMIT 1
+    `, [accountName]);
+    
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error(`Error fetching account ${accountName} for OG ${og}:`, error);
+    throw error;
+  }
 }

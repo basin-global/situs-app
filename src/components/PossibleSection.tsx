@@ -38,7 +38,7 @@ export default function PossibleSection({ logos }: { logos: Logo[] }) {
         MANIFEST
       </h2>
       <p className="font-sans text-2xl mb-12 text-center max-w-3xl mx-auto leading-relaxed">
-        SITUS is <span className="font-bold text-accent-dark">only possible</span> with these permissionless, modular, composable, and interoperable projects.
+        SITUS is <span className="font-bold text-accent-dark">proudly built</span> on these permissionless, modular, composable, and interoperable projects.
       </p>
       <div className="flex flex-wrap justify-center items-center gap-12 max-w-6xl mx-auto">
         {organizedLogos.map((logo, index) => {
