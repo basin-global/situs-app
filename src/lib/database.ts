@@ -1,14 +1,23 @@
-import { createPublicClient, http, parseAbi } from 'viem';
+import { createPublicClient, http, parseAbi, PublicClient, HttpTransport, Chain } from 'viem';
 import { base } from 'viem/chains';
 import { sql } from '@vercel/postgres';
-import OGABI from '@/abi/SitusOG.json';  // Update this line
-import { TokenboundClient } from '@tokenbound/sdk';
+import OGABI from '@/abi/SitusOG.json';
+import { useOG } from '@/contexts/og-context';
+
+// Define a type alias for Ethereum addresses
+type Address = `0x${string}`;
 
 const FACTORY_ADDRESS = '0x67c814835E1920324634Fd6da416a0E79c949970' as const;
 const FACTORY_ABI = parseAbi([
   'function getTldsArray() view returns (string[] memory)',
   'function tldNamesAddresses(string) view returns (address)'
 ]);
+
+// For general use (Privy, etc.)
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(),
+});
 
 function getClient(): PublicClient<HttpTransport, Chain> {
   try {
@@ -57,7 +66,7 @@ export async function updateOGs() {
       const sanitizedOG = sanitizeOGName(og);
       await sql.query(`
         CREATE TABLE IF NOT EXISTS situs_accounts_${sanitizedOG} (
-          token_id BIGINT PRIMARY KEY,
+          token_id INTEGER PRIMARY KEY,
           account_name TEXT NOT NULL,
           created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
           tba_address VARCHAR(42) UNIQUE,
@@ -134,28 +143,6 @@ async function fetchAccountsForOG(client: PublicClient, ogAddress: Address, ogNa
   }
 }
 
-async function getTBAAddress(tokenId: bigint, contractAddress: Address): Promise<string> {
-  try {
-    const tokenboundClient = new TokenboundClient({
-      chainId: base.id,
-      publicClient: createPublicClient({
-        chain: base,
-        transport: http(),
-      }),
-    });
-
-    const account = await tokenboundClient.getAccount({
-      tokenContract: contractAddress,
-      tokenId: tokenId.toString(),
-    });
-
-    return account;
-  } catch (error) {
-    console.error(`Error getting TBA address for token ${tokenId} at ${contractAddress}:`, error);
-    return '';
-  }
-}
-
 async function getTokenOwner(client: PublicClient, contractAddress: Address, tokenId: bigint): Promise<string> {
   try {
     const owner = await client.readContract({
@@ -211,7 +198,7 @@ export async function updateSitusDatabase() {
         // Ensure the accounts table exists with the new columns
         await sql.query(`
           CREATE TABLE IF NOT EXISTS situs_accounts_${sanitizedOG} (
-            token_id BIGINT PRIMARY KEY,
+            token_id INTEGER PRIMARY KEY,
             account_name TEXT NOT NULL,
             created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
             tba_address VARCHAR(42) UNIQUE,
@@ -249,25 +236,27 @@ export async function updateSitusDatabase() {
         // Insert or update accounts
         for (const account of accounts) {
           const existingAccount = existingAccountMap.get(account.token_id);
-          const tbaAddress = await getTBAAddress(BigInt(account.token_id), contractAddress);
           const owner = await getTokenOwner(client, contractAddress, BigInt(account.token_id));
 
           if (!existingAccount) {
             await sql.query(`
-              INSERT INTO situs_accounts_${sanitizedOG} (token_id, account_name, tba_address, owner_of)
-              VALUES ($1, $2, $3, $4)
-            `, [Number(account.token_id), account.account_name, tbaAddress, owner]);
+              INSERT INTO situs_accounts_${sanitizedOG} (token_id, account_name, owner_of)
+              VALUES ($1, $2, $3)
+              ON CONFLICT (token_id) DO UPDATE SET
+                account_name = EXCLUDED.account_name,
+                owner_of = EXCLUDED.owner_of
+            `, [Number(account.token_id), account.account_name, owner]);
             totalNewAccountsAdded++;
-            console.log(`Added new account: ${account.account_name} (${account.token_id}) for OG ${og} with TBA: ${tbaAddress}, Owner: ${owner}`);
+            console.log(`Added new account: ${account.account_name} (${account.token_id}) for OG ${og} with Owner: ${owner}`);
           } else {
-            // Update if TBA address or owner has changed
-            if (existingAccount.tba !== tbaAddress || existingAccount.owner !== owner) {
+            // Update if owner has changed
+            if (existingAccount.owner !== owner) {
               await sql.query(`
                 UPDATE situs_accounts_${sanitizedOG}
-                SET tba_address = $2, owner_of = $3
+                SET owner_of = $2
                 WHERE token_id = $1
-              `, [Number(account.token_id), tbaAddress, owner]);
-              console.log(`Updated account: ${account.account_name} (${account.token_id}) for OG ${og} with TBA: ${tbaAddress}, Owner: ${owner}`);
+              `, [Number(account.token_id), owner]);
+              console.log(`Updated account: ${account.account_name} (${account.token_id}) for OG ${og} with Owner: ${owner}`);
             }
           }
         }
@@ -318,7 +307,7 @@ export async function getAccountByName(og: string, accountName: string) {
     const tableName = `situs_accounts_${sanitizedOG}`;
     const result = await sql.query(`
       SELECT 
-        CAST(token_id AS DOUBLE PRECISION) as token_id, 
+        token_id,
         account_name, 
         created_at, 
         tba_address, 
@@ -328,7 +317,15 @@ export async function getAccountByName(og: string, accountName: string) {
       LIMIT 1
     `, [accountName]);
     
-    return result.rows[0] || null;
+    if (result.rows.length === 0) {
+      return null;
+    }
+
+    const account = result.rows[0];
+    // Ensure token_id is returned as a number
+    account.token_id = Number(account.token_id);
+
+    return account;
   } catch (error) {
     console.error(`Error fetching account ${accountName} for OG ${og}:`, error);
     throw error;

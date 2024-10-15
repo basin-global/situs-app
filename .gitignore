@@ -35,3 +35,6 @@ next-env.d.ts
 # IDEs and editors
 /.idea
 /.vscode
+
+# Cursor
+.cursorrules

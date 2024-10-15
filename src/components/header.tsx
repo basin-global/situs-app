@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import Link from 'next/link'
-import { usePrivy } from '@privy-io/react-auth'
+import { usePrivy} from '@privy-io/react-auth'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
 import { ChevronDown } from 'lucide-react'

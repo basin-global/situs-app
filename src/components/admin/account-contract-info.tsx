@@ -85,6 +85,7 @@ const AccountContractInfo: React.FC<AccountContractInfoProps> = ({ token_id }) =
     <div className="bg-background dark:bg-background-dark rounded-lg p-6 mt-6">
       <h2 className="text-2xl font-bold mb-4 text-foreground dark:text-foreground-dark">Onchain Data</h2>
       <div className="flex items-start space-x-6">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={contractInfo.image} alt={contractInfo.name} className="w-32 h-32 object-cover rounded" />
         <div className="space-y-2 font-mono text-sm text-foreground dark:text-foreground-dark">
           <p><span className="font-semibold">Name:</span> {contractInfo.name}</p>

@@ -9,11 +9,11 @@ import { base } from 'viem/chains';
 import SitusOGAbi from '@/abi/SitusOG.json';
 import { toast } from 'react-toastify';
 import { validateDomainName } from '@/utils/account-validation';
-import { useSearchParams } from 'next/navigation';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import OGContractInfo from '@/components/admin/og-contract-info';
 import { isAdmin } from '@/utils/adminUtils';
+import { getReferral, clearReferral } from '@/utils/referralUtils';
 
 const publicClient = createPublicClient({
   chain: base,
@@ -30,19 +30,11 @@ const CreateAccountPage = () => {
   const [desiredName, setDesiredName] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
-  const [referralAddress, setReferralAddress] = useState<string>('0x0000000000000000000000000000000000000000');
   const [ethUsdPrice, setEthUsdPrice] = useState<number | null>(null);
 
   const searchParams = useSearchParams();
 
   const userIsAdmin = isAdmin(user?.wallet?.address);
-
-  useEffect(() => {
-    const ref = searchParams.get('ref');
-    if (ref && /^0x[a-fA-F0-9]{40}$/.test(ref)) {
-      setReferralAddress(ref);
-    }
-  }, [searchParams]);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -129,6 +121,19 @@ const CreateAccountPage = () => {
     try {
       setLoading(true);
 
+      // Get the current referral
+      const referralAddress = getReferral();
+      console.log('Current referral address:', referralAddress);
+
+      // Log wallet information
+      console.log('Wallet details:', {
+        address: wallets[0].address,
+        chainId: wallets[0].chainId,
+      });
+
+      // Log the current OG details
+      console.log('Current OG:', currentOG);
+
       // Check if the name is already taken
       const holder = await publicClient.readContract({
         address: currentOG.contract_address as `0x${string}`,
@@ -168,7 +173,14 @@ const CreateAccountPage = () => {
       // Ensure addresses are properly formatted
       const formattedWalletAddress = getAddress(wallet.address);
       const formattedContractAddress = getAddress(currentOG.contract_address);
-      const formattedReferralAddress = getAddress(referralAddress);
+      const formattedReferralAddress = getAddress(referralAddress || '0x0000000000000000000000000000000000000000');
+
+      // Log formatted addresses
+      console.log('Formatted addresses:', {
+        wallet: formattedWalletAddress,
+        contract: formattedContractAddress,
+        referral: formattedReferralAddress,
+      });
 
       // Encode the function call data using viem
       const data = encodeFunctionData({
@@ -189,15 +201,25 @@ const CreateAccountPage = () => {
         from: formattedWalletAddress,
       };
 
-      // Log the transaction details for debugging
-      console.log('Transaction details:', {
-        to: formattedContractAddress,
-        value: `0x${priceWei.toString(16)}`,
-        from: formattedWalletAddress,
+      // Log the complete transaction details
+      console.log('Complete transaction details:', {
+        ...transaction,
+        chainId: base.id, // Explicitly log the intended chain ID
+        chainName: base.name,
       });
 
       // Get the Ethereum provider
       const provider = await wallet.getEthereumProvider();
+
+      // Log provider details if available
+      if (provider.request) {
+        try {
+          const chainId = await provider.request({ method: 'eth_chainId' });
+          console.log('Provider chain ID:', chainId);
+        } catch (error) {
+          console.error('Error getting chain ID from provider:', error);
+        }
+      }
 
       // Send the transaction
       const txHash = await provider.request({
@@ -276,6 +298,9 @@ const CreateAccountPage = () => {
         }
       }
 
+      // After successful transaction confirmation
+      clearReferral(); // Clear the referral after successful account creation
+
     } catch (error) {
       console.error('Error creating account:', error);
       toast.dismiss();
@@ -307,6 +332,10 @@ const CreateAccountPage = () => {
 
   if (!ready) {
     return <div>Loading Privy...</div>;
+  }
+
+  if (!searchParams) {
+    return null; // or a loading indicator
   }
 
   return (
@@ -368,10 +397,6 @@ const CreateAccountPage = () => {
         )
       ) : (
         <p className="mt-6 text-xl text-center text-red-500">Account creation is currently disabled for this OG.</p>
-      )}
-      
-      {referralAddress !== '0x0000000000000000000000000000000000000000' && (
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 text-center">Referral: {referralAddress}</p>
       )}
       
       {/* Add OGContractInfo for admin users */}

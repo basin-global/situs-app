@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePrivy } from '@privy-io/react-auth'
+import ReferralComponent from './ReferralComponent'  // Import the ReferralComponent
 
 export default function Footer() {
   const { currentOG } = useOG()
@@ -117,6 +118,9 @@ export default function Footer() {
                 ETH: ${ethPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </span>
             )}
+          </div>
+          <div className="mt-4">
+            <ReferralComponent />
           </div>
         </div>
       </div>

@@ -20,7 +20,7 @@ export function SubNavigation({ items }: SubNavigationProps) {
 
   if (!currentOG) return null
 
-  const ogPath = currentOG.replace(/^\./, '')
+  const ogPath = currentOG.og_name.slice(1)  // Remove the leading dot
 
   return (
     <nav className="flex justify-center mb-8">
