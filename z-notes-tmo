@@ -1,0 +1,12 @@
+SWR later for tabbed view - add hook
+/Users/tmo/cursor/situs-app/src/hooks/useSimpleHash.ts deleted for now 
+- remove white on cards - asset grid
+- clean up fonts
+- can i shorten urls? in account / names?
+- active chains dropown filter / selector
+- also controls active chain when sending / operating
+- polygon assets not showing in tabbed
+
+
+cards and tailwind etc:
+shadcn/ui for tabs - use lazy loading

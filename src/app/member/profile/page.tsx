@@ -3,12 +3,17 @@
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { isAdmin } from '@/utils/adminUtils';
 
 export default function ProfilePage() {
-  const { ready, authenticated, user, logout, login, createWallet, linkWallet } = usePrivy();
+  const { ready, authenticated, user, logout, login } = usePrivy();
   const { wallets } = useWallets();
   const [ensName, setEnsName] = useState<string | null>(null);
+
+  useEffect(() => {
+    console.log('Privy ready:', ready);
+    console.log('Authenticated:', authenticated);
+    console.log('Wallets:', wallets);
+  }, [ready, authenticated, wallets]);
 
   useEffect(() => {
     const fetchEnsName = async () => {
@@ -27,7 +32,7 @@ export default function ProfilePage() {
   }, [user]);
 
   if (!ready) {
-    return <div className="text-foreground">Loading...</div>;
+    return <div>Loading Privy...</div>;
   }
 
   if (!authenticated) {
@@ -54,30 +59,6 @@ export default function ProfilePage() {
         return `Phone: ${account.phoneNumber}`;
       default:
         return `${account.type}: ${JSON.stringify(account)}`;
-    }
-  };
-
-  const userIsAdmin = isAdmin(user?.wallet?.address);
-
-  const updateDatabase = async () => {
-    try {
-      const response = await fetch(`/api/update-database`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ walletAddress: user?.wallet?.address }),
-      });
-      const data = await response.json();
-      console.log('Update response:', data);
-      if (response.ok) {
-        alert(`Database update completed. Message: ${data.message}\nAccounts processed: ${data.details?.totalAccountsProcessed || 0}`);
-      } else {
-        alert(`Error updating database: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('Error updating database:', error);
-      alert(`Failed to update database: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
@@ -121,46 +102,18 @@ export default function ProfilePage() {
           <label className="block text-muted-foreground text-sm font-bold mb-2">
             Connected Wallets:
           </label>
-          <ul className="list-disc list-inside text-foreground">
+          <ul className="list-none text-foreground">
             {wallets.map((wallet, index) => (
-              <li key={index}>
+              <li key={index} className="mb-2">
                 {wallet.address} ({wallet.walletClientType})
               </li>
             ))}
           </ul>
         </div>
-        <div className="flex space-x-4 mb-4">
-          <Button
-            onClick={createWallet}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            Create New Wallet (soon)
-          </Button>
-          <Button
-            onClick={linkWallet}
-            className="bg-secondary text-secondary-foreground hover:bg-secondary/90"
-          >
-            Link Existing Wallet (soon)
-          </Button>
-        </div>
         
         {/* Add UserOGs component here */}
         <div className="mt-8 mb-8 bg-background p-6 rounded-lg shadow-inner">
         </div>
-        
-        {userIsAdmin && (
-          <div className="mt-8">
-            <h2 className="text-2xl font-bold mb-4">SITUS Admin</h2>
-            <div className="flex space-x-4 mb-4">
-              <Button
-                onClick={updateDatabase}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                Update Database
-              </Button>
-            </div>
-          </div>
-        )}
         
         <Button
           onClick={logout}

@@ -9,6 +9,7 @@ import { OGProvider } from '@/contexts/og-context'  // Changed from SitusProvide
 import { PrivyProviderWrapper } from '@/providers/privy-provider'
 import { spaceGrotesk, spaceMono } from './fonts'
 import Footer from '@/components/footer'
+import AnnouncementBanner from '@/components/AnnouncementBanner'
 
 export const metadata: Metadata = {
   title: 'Situs | place-based resilience',
@@ -20,14 +21,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${spaceGrotesk.variable} ${spaceMono.variable}`}>
       <body className="font-sans bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark min-h-screen flex flex-col">
         <PrivyProviderWrapper>
-          <OGProvider>
-            <Header />
-            <ToastContainer />
-            <main className="flex-grow">
-              {children}
-            </main>
-            <Footer />
-          </OGProvider>
+            <OGProvider>
+              {process.env.NEXT_PUBLIC_IS_STAGING === 'true' && <AnnouncementBanner />}
+              <Header />
+              <ToastContainer />
+              <main className="flex-grow">
+                {children}
+              </main>
+              <Footer />
+            </OGProvider>
         </PrivyProviderWrapper>
       </body>
     </html>

@@ -87,8 +87,9 @@ export async function getAccountsForOG(og: string) {
     const sanitizedOG = sanitizeOGName(og);
     const tableName = `situs_accounts_${sanitizedOG}`;
     const result = await sql.query(`
-      SELECT token_id, account_name, created_at
+      SELECT token_id, account_name
       FROM "${tableName}"
+      ORDER BY token_id ASC
     `);
     return result.rows;
   } catch (error) {
@@ -292,7 +293,20 @@ export async function getAllOGs() {
 }
 
 export async function getOGByName(name: string) {
-  const { rows } = await sql`SELECT * FROM situs_ogs WHERE og_name = ${name}`;
+  const { rows } = await sql`
+    SELECT 
+      og_name,
+      contract_address,
+      name_front,
+      tagline,
+      description,
+      email,
+      website,
+      chat,
+      total_supply
+    FROM situs_ogs 
+    WHERE og_name = ${name}
+  `;
   return rows[0];
 }
 

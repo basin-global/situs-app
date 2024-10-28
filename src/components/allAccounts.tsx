@@ -39,7 +39,7 @@ export default function AllAccounts({ og, searchQuery }: AllAccountsProps) {
           {filteredAccounts.map((account) => (
             <Link
               key={account.token_id}
-              href={`/${og}/accounts/name/${account.account_name}`}
+              href={`/${og}/${account.account_name}`}
               className="bg-primary dark:bg-primary-dark hover:bg-primary-dark dark:hover:bg-primary text-primary-foreground dark:text-primary-dark-foreground font-bold py-4 px-6 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 flex items-center justify-center"
             >
               <span className="text-lg">{account.account_name}.{og}</span>

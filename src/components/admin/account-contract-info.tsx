@@ -82,8 +82,8 @@ const AccountContractInfo: React.FC<AccountContractInfoProps> = ({ token_id }) =
   const truncateAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`;
 
   return (
-    <div className="bg-background dark:bg-background-dark rounded-lg p-6 mt-6">
-      <h2 className="text-2xl font-bold mb-4 text-foreground dark:text-foreground-dark">Onchain Data</h2>
+    <div className="bg-muted dark:bg-muted-dark border border-border dark:border-border-dark rounded-lg p-6 animate-fade-in-up">
+      <h2 className="text-lg font-medium mb-4 text-foreground dark:text-foreground-dark">Onchain Data</h2>
       <div className="flex items-start space-x-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={contractInfo.image} alt={contractInfo.name} className="w-32 h-32 object-cover rounded" />

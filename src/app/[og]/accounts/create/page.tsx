@@ -11,8 +11,6 @@ import { toast } from 'react-toastify';
 import { validateDomainName } from '@/utils/account-validation';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
-import OGContractInfo from '@/components/admin/og-contract-info';
-import { isAdmin } from '@/utils/adminUtils';
 import { getReferral, clearReferral } from '@/utils/referralUtils';
 
 const publicClient = createPublicClient({
@@ -33,8 +31,6 @@ const CreateAccountPage = () => {
   const [ethUsdPrice, setEthUsdPrice] = useState<number | null>(null);
 
   const searchParams = useSearchParams();
-
-  const userIsAdmin = isAdmin(user?.wallet?.address);
 
   useEffect(() => {
     const fetchInitialData = async () => {
@@ -67,7 +63,6 @@ const CreateAccountPage = () => {
           setPriceWei(priceResult);
         } else {
           console.error('Unexpected price result type:', typeof priceResult);
-          // Handle the error case appropriately, maybe set a default price or show an error message
         }
 
         if (typeof buyingEnabledResult === 'boolean') {
@@ -95,6 +90,12 @@ const CreateAccountPage = () => {
     fetchInitialData();
   }, [currentOG, ready]);
 
+  useEffect(() => {
+    console.log('Component mounted or auth/wallet changed');
+    console.log('Authenticated:', authenticated);
+    console.log('Connected Wallets:', wallets);
+  }, [authenticated, wallets]);
+
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
     setDesiredName(name);
@@ -103,10 +104,17 @@ const CreateAccountPage = () => {
   };
 
   const handleCreateAccount = async () => {
+    console.log('Authenticated:', authenticated);
+    console.log('Connected Wallets:', wallets);
+
     if (!authenticated || wallets.length === 0) {
+      console.log('Authentication or wallet missing');
       toast.error('Please connect your wallet first');
       return;
     }
+
+    const wallet = wallets[0]; // Use the first connected wallet
+    const provider = await wallet.getEthereumProvider();
 
     if (!desiredName || validationMessage) {
       toast.error('Please enter a valid name');
@@ -127,8 +135,8 @@ const CreateAccountPage = () => {
 
       // Log wallet information
       console.log('Wallet details:', {
-        address: wallets[0].address,
-        chainId: wallets[0].chainId,
+        address: wallet.address,
+        chainId: wallet.chainId,
       });
 
       // Log the current OG details
@@ -168,8 +176,46 @@ const CreateAccountPage = () => {
 
       toast.info('Creating account...', { autoClose: false });
 
-      const wallet = wallets[0];
-      
+      // Check the current chain ID
+      const currentChainId = await provider.request({ method: 'eth_chainId' });
+
+      // If not on Base, switch to Base
+      if (currentChainId !== `0x${base.id.toString(16)}`) {
+        try {
+          await provider.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: `0x${base.id.toString(16)}` }],
+          });
+        } catch (switchError) {
+          // Type guard for the switchError
+          if (
+            switchError && 
+            typeof switchError === 'object' && 
+            'code' in switchError && 
+            switchError.code === 4902
+          ) {
+            await provider.request({
+              method: 'wallet_addEthereumChain',
+              params: [
+                {
+                  chainId: `0x${base.id.toString(16)}`,
+                  chainName: 'Base',
+                  nativeCurrency: {
+                    name: 'Ether',
+                    symbol: 'ETH',
+                    decimals: 18
+                  },
+                  rpcUrls: ['https://mainnet.base.org'],
+                  blockExplorerUrls: ['https://basescan.org/'],
+                },
+              ],
+            });
+          } else {
+            throw new Error("Couldn't switch to the Base network.");
+          }
+        }
+      }
+
       // Ensure addresses are properly formatted
       const formattedWalletAddress = getAddress(wallet.address);
       const formattedContractAddress = getAddress(currentOG.contract_address);
@@ -197,8 +243,9 @@ const CreateAccountPage = () => {
       const transaction = {
         to: formattedContractAddress,
         data,
-        value: `0x${priceWei.toString(16)}`, // Convert to hexadecimal
+        value: `0x${priceWei.toString(16)}`,
         from: formattedWalletAddress,
+        chainId: base.id, // Explicitly set the chain ID to Base
       };
 
       // Log the complete transaction details
@@ -207,9 +254,6 @@ const CreateAccountPage = () => {
         chainId: base.id, // Explicitly log the intended chain ID
         chainName: base.name,
       });
-
-      // Get the Ethereum provider
-      const provider = await wallet.getEthereumProvider();
 
       // Log provider details if available
       if (provider.request) {
@@ -322,10 +366,8 @@ const CreateAccountPage = () => {
   const formatUsdPrice = (ethPrice: number, usdPrice: number) => {
     const priceInUsd = ethPrice * usdPrice;
     if (priceInUsd < 0.01) {
-      // Show up to 4 decimal places for very small amounts
       return priceInUsd.toFixed(4).replace(/\.?0+$/, '');
     } else {
-      // Show 2 decimal places for larger amounts
       return priceInUsd.toFixed(2);
     }
   };
@@ -335,7 +377,7 @@ const CreateAccountPage = () => {
   }
 
   if (!searchParams) {
-    return null; // or a loading indicator
+    return null;
   }
 
   return (
@@ -348,7 +390,7 @@ const CreateAccountPage = () => {
       </h1>
 
       {buyingEnabled ? (
-        authenticated ? (
+        authenticated && wallets.length > 0 ? (
           <div className="mt-6 space-y-4 flex flex-col items-center">
             <div className="w-full max-w-md">
               <input
@@ -386,7 +428,7 @@ const CreateAccountPage = () => {
           </div>
         ) : (
           <div className="mt-6 text-center">
-            <p className="text-xl mb-4 text-gray-700 dark:text-gray-300">Please login to create an account</p>
+            <p className="text-xl mb-4 text-gray-700 dark:text-gray-300">Please login and connect a wallet to create an account</p>
             <button
               onClick={login}
               className="bg-green-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition duration-300"
@@ -397,14 +439,6 @@ const CreateAccountPage = () => {
         )
       ) : (
         <p className="mt-6 text-xl text-center text-red-500">Account creation is currently disabled for this OG.</p>
-      )}
-      
-      {/* Add OGContractInfo for admin users */}
-      {userIsAdmin && (
-        <div className="mt-8 bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-          <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">Admin: Contract Information</h3>
-          <OGContractInfo />
-        </div>
       )}
     </div>
   );

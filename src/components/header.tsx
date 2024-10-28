@@ -3,24 +3,40 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button } from "@/components/ui/button"
 import Link from 'next/link'
-import { usePrivy} from '@privy-io/react-auth'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, Wallet, User, LogOut, Settings, UserCircle } from 'lucide-react'
 import { useOG } from '@/contexts/og-context'
 import { OGChooser } from './og-chooser'
-import { Navigation } from './navigation'  // Import the new Navigation component
+// import { Navigation } from './navigation'
+import { toast } from 'react-toastify'
+import { useRouter } from 'next/navigation'
+import { isAdmin } from '@/utils/adminUtils'
+
+// Utility function to truncate addresses
+const truncateAddress = (address: string) => {
+  if (address.length <= 10) return address; // Return as is if it's already short
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
 
 export default function Header() {
-  const { login, authenticated, user, logout } = usePrivy()
+  const { login, authenticated, logout, user } = usePrivy()
+  const { wallets } = useWallets()
   const { currentOG } = useOG()
   const pathname = usePathname()
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false)
+  const [ensName, setEnsName] = useState<string | null>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+  const router = useRouter()
+  const [isUserAdmin, setIsUserAdmin] = useState(false)
 
   const isHomePage = pathname === '/'
   const isProfilePage = pathname.startsWith('/profile')
-  const isOGPage = !isHomePage && !isProfilePage
+  const isAdminPage = pathname.startsWith('/admin')
+  const isMemberPage = pathname.startsWith('/member')
+  const isAssetsPage = pathname.startsWith('/assets')
+  const isOGPage = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage
 
   const logoSrc = isOGPage && currentOG
     ? `/ogs/orbs/${currentOG.og_name.replace(/^\./, '')}-orb.png`
@@ -30,27 +46,59 @@ export default function Header() {
     ? `/${currentOG.og_name.replace(/^\./, '')}`
     : "/"
 
+  const shouldShowOGChooserAndNavigation = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage
+
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false)
+    const fetchEnsName = async () => {
+      if (wallets.length > 0) {
+        try {
+          const response = await fetch(`https://api.ensideas.com/ens/resolve/${wallets[0].address}`);
+          const data = await response.json();
+          setEnsName(data.name || null);
+        } catch (error) {
+          console.error('Error fetching ENS name:', error);
+        }
+      }
+    };
+
+    fetchEnsName();
+  }, [wallets]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setIsUserMenuOpen(false);
       }
     }
 
-    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('mousedown', handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Check if the user is an admin when wallets change
+    if (wallets.length > 0) {
+      setIsUserAdmin(isAdmin(wallets[0].address))
     }
-  }, [])
+  }, [wallets]);
 
-  const toggleDropdown = () => setIsDropdownOpen(!isDropdownOpen)
-
-  const truncateAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`
-
-  const shouldShowOGChooserAndNavigation = !isHomePage && !isProfilePage
+  const handleMyAccountClick = () => {
+    if (user?.wallet?.address) {
+      if (ensName) {
+        router.push(`/member/${ensName}`);
+      } else {
+        router.push(`/member/${user.wallet.address}`);
+      }
+      setIsUserMenuOpen(false);
+    } else {
+      toast.error('Wallet address not available');
+    }
+  };
 
   return (
-    <header className="bg-gradient-to-r from-secondary to-primary text-white py-6 shadow-lg">
+    <header className="bg-gradient-to-r from-secondary to-primary text-white py-6 shadow-lg relative z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center">
           {/* Left side: Logo and OGChooser */}
@@ -64,7 +112,7 @@ export default function Header() {
                 priority={true}
                 style={{ width: 'auto', height: 'auto' }}
               />
-              {(isHomePage || isProfilePage) && (
+              {(isHomePage || isProfilePage || isAdminPage || isMemberPage || isAssetsPage) && (
                 <div className="ml-4">
                   <Image 
                     src="/assets/logos/situs-logo-text.png"
@@ -73,12 +121,6 @@ export default function Header() {
                     height={50}
                     priority={true}
                     style={{ width: 'auto', height: 'auto' }}
-                    onError={(e) => {
-                      console.error('Error loading image:', e);
-                      const target = e.target as HTMLImageElement;
-                      target.onerror = null;
-                      target.src = '/assets/logos/fallback-logo.png';
-                    }}
                   />
                 </div>
               )}
@@ -92,45 +134,85 @@ export default function Header() {
           
           {/* Right side: Navigation, Login button or user info */}
           <div className="flex items-center space-x-6">
-            {shouldShowOGChooserAndNavigation && <Navigation />}
+            {/* {shouldShowOGChooserAndNavigation && <Navigation />} */}
             {!authenticated ? (
               <Button 
                 variant="outline" 
                 size="lg"
-                onClick={() => login()}
+                onClick={login}
                 className="bg-white text-primary hover:bg-primary hover:text-white transition-colors duration-300 text-lg"
               >
                 Login
               </Button>
             ) : (
-              <div className="flex items-center space-x-4">
-                <span className="text-sm font-medium bg-white/10 px-3 py-1 rounded-full">
-                  {truncateAddress(user?.wallet?.address || '')}
-                </span>
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={toggleDropdown}
-                    className="text-lg font-medium hover:text-gray-200 transition-colors duration-300"
-                  >
-                    <ChevronDown size={20} />
-                  </button>
-                  {isDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-[#111] ring-1 ring-black ring-opacity-5">
-                      <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                        <button
-                          onClick={() => {
-                            logout()
-                            setIsDropdownOpen(false)
-                          }}
-                          className="block w-full text-left px-4 py-2 text-base text-white hover:bg-gray-800"
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="flex items-center space-x-2 bg-white/10 px-3 py-1 rounded-full hover:bg-white/20 transition-colors duration-300"
+                >
+                  <span className="text-sm font-medium">
+                    {ensName || (wallets.length > 0 ? truncateAddress(wallets[0].address) : 'No wallet connected')}
+                  </span>
+                  <ChevronDown size={16} />
+                </button>
+                {isUserMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-[#111] ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                      {wallets.map((wallet) => (
+                        <div
+                          key={wallet.address}
+                          className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300"
                           role="menuitem"
                         >
-                          Logout
+                          {truncateAddress(wallet.address)}
+                        </div>
+                      ))}
+                      <button
+                        onClick={handleMyAccountClick}
+                        className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                        role="menuitem"
+                      >
+                        <UserCircle size={16} className="mr-2" />
+                        My Account
+                      </button>
+                      <button
+                        onClick={() => {
+                          router.push('/member/profile');
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                        role="menuitem"
+                      >
+                        <User size={16} className="mr-2" />
+                        Profile
+                      </button>
+                      {isUserAdmin && (
+                        <button
+                          onClick={() => {
+                            router.push('/admin');
+                            setIsUserMenuOpen(false);
+                          }}
+                          className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                          role="menuitem"
+                        >
+                          <Settings size={16} className="mr-2" />
+                          Admin
                         </button>
-                      </div>
+                      )}
+                      <button
+                        onClick={() => {
+                          logout();
+                          setIsUserMenuOpen(false);
+                        }}
+                        className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                        role="menuitem"
+                      >
+                        <LogOut size={16} className="mr-2" />
+                        Logout
+                      </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

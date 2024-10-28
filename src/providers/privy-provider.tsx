@@ -1,15 +1,22 @@
 'use client'
 
 import { PrivyProvider } from '@privy-io/react-auth';
-import { supportedChains } from '@/config/chains';
+import { supportedChains, getActiveChains } from '@/config/chains';
 
 export function PrivyProviderWrapper({ children }: { children: React.ReactNode }) {
+  const activeChains = getActiveChains();
+  const baseChain = supportedChains.find(chain => chain.id === 8453); // Base
+
+  if (!baseChain) {
+    console.error('Base chain not found in supported chains');
+  }
+
   return (
     <PrivyProvider
-      appId="cm1dmgstc06htj0hfahsvl6n1"
+      appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
       config={{
-        defaultChain: supportedChains.find(chain => chain.id === 8453), // Base
-        supportedChains: supportedChains,
+        defaultChain: baseChain || supportedChains[0],
+        supportedChains: activeChains,
       }}
     >
       {children}
