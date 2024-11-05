@@ -101,8 +101,8 @@ export default function Header() {
     <header className={`bg-gradient-to-r from-secondary to-primary text-white shadow-lg relative z-50 ${
       isHomePage && !authenticated ? 'py-6' : 'py-3'
     }`}>
-      <div className="container mx-auto px-4 max-w-7xl">
-        <div className="flex justify-between items-center">
+      <div className="container mx-auto px-4 max-w-7xl mobile-safe-container">
+        <div className="mobile-header-container">
           {/* Left side: Logo and OGChooser */}
           <div className="flex items-center space-x-4 flex-shrink-0">
             <Link href={logoLink} className="flex items-center">
@@ -135,7 +135,7 @@ export default function Header() {
           </div>
           
           {/* Right side: Navigation and User Menu */}
-          <div className="flex items-center space-x-6 flex-shrink-0">
+          <div className="flex items-center space-x-6 flex-shrink-0 mobile-nav-container">
             {shouldShowOGChooserAndNavigation && <Navigation />}
             {!authenticated ? (
               <Button 
