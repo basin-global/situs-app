@@ -23,6 +23,23 @@
     --border: 51 51 51;
     --input: 51 51 51;
     --ring: 59 130 246;
+    --privy-border-radius-sm: 0.375rem;
+    --privy-border-radius-md: 0.5rem;
+    --privy-border-radius-lg: 0.75rem;
+    --privy-border-radius-full: 9999px;
+    --privy-color-background: #111827;
+    --privy-color-background-2: #1F2937;
+    --privy-color-foreground: #F9FAFB;
+    --privy-color-foreground-2: #E5E7EB;
+    --privy-color-foreground-3: #9CA3AF;
+    --privy-color-foreground-4: #6B7280;
+    --privy-color-foreground-accent: #60A5FA;
+    --privy-color-accent: #3B82F6;
+    --privy-color-accent-light: #60A5FA;
+    --privy-color-accent-dark: #2563EB;
+    --privy-color-success: #10B981;
+    --privy-color-error: #EF4444;
+    --privy-color-error-light: #FEE2E2;
   }
 }
 
@@ -30,4 +47,14 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@layer utilities {
+  .text-shadow-sm {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.og-gradient-text {
+  @apply bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-500 text-transparent bg-clip-text;
 }

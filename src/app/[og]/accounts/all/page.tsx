@@ -23,8 +23,11 @@ export default function AllAccountsPage() {
         <AccountsSubNavigation />
       </div>
       
-      <h2 className="text-5xl font-mono font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
-        .{currentOG.og_name.replace(/^\./, '')} Accounts
+      <h2 className="text-5xl font-mono font-bold mb-8 text-center">
+        <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-500 text-transparent bg-clip-text">
+          .{currentOG.og_name.replace(/^\./, '')}
+        </span>
+        {' '}Accounts
       </h2>
       
       <div className="mb-8 max-w-md mx-auto">

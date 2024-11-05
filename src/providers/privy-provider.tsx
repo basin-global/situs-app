@@ -17,6 +17,15 @@ export function PrivyProviderWrapper({ children }: { children: React.ReactNode }
       config={{
         defaultChain: baseChain || supportedChains[0],
         supportedChains: activeChains,
+        appearance: { walletList: ['metamask', 'coinbase_wallet', 'wallet_connect'] },
+        externalWallets: {  
+          coinbaseWallet: {
+            connectionOptions: 'smartWalletOnly'
+          },
+          walletConnect: {
+            enabled: true
+          }
+        }
       }}
     >
       {children}

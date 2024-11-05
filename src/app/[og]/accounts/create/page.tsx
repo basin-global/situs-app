@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useOG } from '@/contexts/og-context';
 import { AccountsSubNavigation } from '@/components/accounts-sub-navigation';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
-import { createPublicClient, http, formatEther, parseEther, encodeFunctionData, getAddress } from 'viem';
+import { createPublicClient, http, formatEther, parseEther, encodeFunctionData, getAddress, keccak256, toHex } from 'viem';
 import { base } from 'viem/chains';
 import SitusOGAbi from '@/abi/SitusOG.json';
 import { toast } from 'react-toastify';
@@ -12,11 +12,41 @@ import { validateDomainName } from '@/utils/account-validation';
 import { useRouter, useSearchParams } from 'next/navigation';
 import axios from 'axios';
 import { getReferral, clearReferral } from '@/utils/referralUtils';
+import { calculateTBA } from '@/utils/tba';
+import Link from 'next/link';
+import { GroupEnsurance } from '@/components/group-ensurance';
+import { useOGData } from '@/hooks/useOGData';
+import { AccountFeatures } from '@/components/account-features';
 
 const publicClient = createPublicClient({
   chain: base,
   transport: http()
 });
+
+// Add this helper function at the top level
+async function parseDomainCreatedEvent(receipt: any, contractAddress: `0x${string}`) {
+  console.log('Parsing receipt logs:', receipt.logs);
+  
+  // Find the event from our contract
+  const domainCreatedEvent = receipt.logs.find((log: any) => 
+    log.address.toLowerCase() === contractAddress.toLowerCase()
+  );
+
+  if (!domainCreatedEvent) {
+    console.error('Available logs:', receipt.logs);
+    throw new Error('DomainCreated event not found in transaction logs');
+  }
+
+  // Get token ID from totalSupply since it's sequential
+  const tokenId = await publicClient.readContract({
+    address: domainCreatedEvent.address as `0x${string}`,  // Use the address from the log
+    abi: SitusOGAbi,
+    functionName: 'totalSupply',
+  }) as bigint;
+
+  console.log('Found token ID:', tokenId.toString());
+  return Number(tokenId);
+}
 
 const CreateAccountPage = () => {
   const router = useRouter();
@@ -29,6 +59,9 @@ const CreateAccountPage = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [ethUsdPrice, setEthUsdPrice] = useState<number | null>(null);
+  const { ogData } = useOGData();
+
+  console.log('OG Data:', ogData);
 
   const searchParams = useSearchParams();
 
@@ -128,6 +161,44 @@ const CreateAccountPage = () => {
 
     try {
       setLoading(true);
+
+      // Check balance before proceeding
+      const balance = await publicClient.getBalance({
+        address: wallet.address as `0x${string}`
+      });
+
+      // Add a buffer for gas (roughly 0.001 ETH)
+      const estimatedGas = BigInt('1000000000000000'); // 0.001 ETH in wei
+      const totalNeeded = priceWei + estimatedGas;
+      
+      if (balance < totalNeeded) {
+        setLoading(false);
+        toast.error(
+          <div>
+            <p>Insufficient ETH balance.</p>
+            <p className="mt-2 text-sm">
+              You need at least {formatEther(priceWei)} ETH plus gas fees (~0.001 ETH).
+              <br />
+              Get ETH from{' '}
+              <a 
+                href="https://www.coinbase.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-700 underline"
+                onClick={(e) => e.stopPropagation()} // Prevent toast from closing when clicking link
+              >
+                Coinbase
+              </a>
+              {' '}or another exchange.
+            </p>
+          </div>,
+          { 
+            autoClose: false,
+            closeOnClick: false // Prevent toast from closing when clicking inside
+          }
+        );
+        return;
+      }
 
       // Get the current referral
       const referralAddress = getReferral();
@@ -283,8 +354,10 @@ const CreateAccountPage = () => {
           </a>
         </div>,
         {
-          autoClose: false,
-          closeOnClick: false,
+          autoClose: 3000,  // 3 seconds
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true
         }
       );
       setDesiredName('');
@@ -309,19 +382,43 @@ const CreateAccountPage = () => {
 
         if (receipt) {
           console.log('Transaction confirmed:', receipt);
-          toast.success(
-            <div>
-              Account creation confirmed!
-              <br />
-              <a href={basescanUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline">
-                View on Basescan
-              </a>
-            </div>,
-            {
-              autoClose: false,
-              closeOnClick: false,
-            }
-          );
+          try {
+            const tokenId = await parseDomainCreatedEvent(
+              receipt, 
+              currentOG.contract_address as `0x${string}`
+            );
+            await updateDatabase(tokenId);
+            
+            // Get the account name from contract
+            const name = await publicClient.readContract({
+              address: currentOG.contract_address as `0x${string}`,
+              abi: SitusOGAbi,
+              functionName: 'domainIdsNames',
+              args: [tokenId],
+            }) as string;
+
+            // Success toast with account link and dismiss on click
+            const toastId = toast.success(
+              <div className="text-center">
+                <p className="font-bold mb-2">Success! Your account is ready.</p>
+                <Link 
+                  href={`/${currentOG.og_name.slice(1)}/${name}`}
+                  className="inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  onClick={() => toast.dismiss(toastId)}
+                >
+                  View Your Account
+                </Link>
+              </div>,
+              {
+                autoClose: false,
+                closeOnClick: true,  // Will close when clicking anywhere on toast
+                closeButton: true    // Shows an X button
+              }
+            );
+          } catch (error) {
+            console.error('Error processing transaction receipt:', error);
+            toast.error('Account created but database update failed');
+          }
         } else {
           console.log('Transaction not confirmed after maximum attempts');
           toast.warning(
@@ -372,6 +469,36 @@ const CreateAccountPage = () => {
     }
   };
 
+  // Move updateDatabase inside the component
+  const updateDatabase = async (tokenId: number) => {
+    if (!currentOG?.contract_address) {
+      throw new Error('No OG contract address available');
+    }
+
+    // Get name from contract to ensure accuracy
+    const name = await publicClient.readContract({
+      address: currentOG.contract_address as `0x${string}`,
+      abi: SitusOGAbi,
+      functionName: 'domainIdsNames',
+      args: [tokenId],
+    }) as string;
+
+    const tba = await calculateTBA(currentOG.contract_address as `0x${string}`, tokenId);
+    
+    await fetch('/api/update-account', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        og: currentOG.og_name,
+        accountName: name,
+        tokenId,
+        tbaAddress: tba
+      })
+    });
+  };
+
   if (!ready) {
     return <div>Loading Privy...</div>;
   }
@@ -381,64 +508,132 @@ const CreateAccountPage = () => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-      <div className="mb-8 flex justify-center">
-        <AccountsSubNavigation />
-      </div>
-      <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-white">
-        Create a {currentOG?.og_name} Account 
-      </h1>
+    <div className="grid grid-cols-1 gap-8">
+      {/* Create Account Section - Centered with max-width */}
+      <div className="max-w-2xl mx-auto w-full p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+        <div className="mb-8 flex justify-center">
+          <AccountsSubNavigation />
+        </div>
+        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-white">
+          {buyingEnabled ? (
+            <>
+              Create a <span className="og-gradient-text">{currentOG?.og_name}</span> Account
+            </>
+          ) : (
+            <>
+              <span className="og-gradient-text">{currentOG?.og_name}</span> Accounts
+            </>
+          )}
+        </h1>
 
-      {buyingEnabled ? (
-        authenticated && wallets.length > 0 ? (
-          <div className="mt-6 space-y-4 flex flex-col items-center">
-            <div className="w-full max-w-md">
-              <input
-                type="text"
-                value={desiredName}
-                onChange={handleNameChange}
-                placeholder="Enter desired name"
-                className="w-full p-3 border rounded-lg text-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-center"
-              />
+        {buyingEnabled ? (
+          authenticated && wallets.length > 0 ? (
+            <>
+              <div className="mt-6 space-y-4 flex flex-col items-center">
+                <div className="w-full max-w-md">
+                  <input
+                    type="text"
+                    value={desiredName}
+                    onChange={handleNameChange}
+                    placeholder="Enter desired name"
+                    className="w-full p-3 border rounded-lg text-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-center"
+                  />
+                </div>
+                {validationMessage && <p className="text-red-500 text-lg text-center">{validationMessage}</p>}
+                <p className="text-3xl font-bold text-gray-700 dark:text-gray-300 text-center">
+                  {formatFullName()}
+                </p>
+                <div className="text-center">
+                  <p className="text-lg text-gray-700 dark:text-gray-300">
+                    Price: <span className="font-semibold">{formatEther(priceWei)} ETH</span>
+                    {ethUsdPrice && (
+                      <span className="ml-2 text-sm">
+                        (~${formatUsdPrice(parseFloat(formatEther(priceWei)), ethUsdPrice)} USD)
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-sm text-green-600 dark:text-green-400 mt-1 font-medium italic">
+                    One-time purchase, no renewal fees
+                  </p>
+                </div>
+                <button
+                  onClick={handleCreateAccount}
+                  disabled={loading || !!validationMessage}
+                  className="w-full max-w-md bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-300"
+                >
+                  {loading ? 'Creating...' : 'CREATE ACCOUNT'}
+                </button>
+              </div>
+
+              <div className="mt-12 flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 text-center text-sm">
+                <a 
+                  href="#features" 
+                  className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-300 transition-colors"
+                >
+                  Why should I want a {currentOG?.og_name} account?
+                </a>
+                <a 
+                  href="#distribution" 
+                  className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-300 transition-colors"
+                >
+                  What does my purchase go to?
+                </a>
+              </div>
+            </>
+          ) : (
+            <div className="mt-6 text-center">
+              <p className="text-xl mb-4 text-gray-700 dark:text-gray-300">Please login and connect a wallet to create an account</p>
+              <button
+                onClick={login}
+                className="bg-green-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition duration-300"
+              >
+                LOGIN
+              </button>
             </div>
-            {validationMessage && <p className="text-red-500 text-lg text-center">{validationMessage}</p>}
-            <p className="text-3xl font-bold text-gray-700 dark:text-gray-300 text-center">
-              {formatFullName()}
-            </p>
-            <div className="text-center">
-              <p className="text-lg text-gray-700 dark:text-gray-300">
-                Price: <span className="font-semibold">{formatEther(priceWei)} ETH</span>
-                {ethUsdPrice && (
-                  <span className="ml-2 text-sm">
-                    (~${formatUsdPrice(parseFloat(formatEther(priceWei)), ethUsdPrice)} USD)
-                  </span>
-                )}
-              </p>
-              <p className="text-sm text-green-600 dark:text-green-400 mt-1 font-medium italic">
-                One-time purchase, no renewal fees
-              </p>
-            </div>
-            <button
-              onClick={handleCreateAccount}
-              disabled={loading || !!validationMessage}
-              className="w-full max-w-md bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-300"
-            >
-              {loading ? 'Creating...' : 'CREATE ACCOUNT'}
-            </button>
-          </div>
+          )
         ) : (
           <div className="mt-6 text-center">
-            <p className="text-xl mb-4 text-gray-700 dark:text-gray-300">Please login and connect a wallet to create an account</p>
-            <button
-              onClick={login}
-              className="bg-green-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition duration-300"
-            >
-              LOGIN
-            </button>
+            <p className="text-xl text-red-500">
+              This Group is by invite, application, or referral only.{' '}
+              {ogData?.website ? (
+                <>
+                  Please contact them at{' '}
+                  <Link 
+                    href={ogData.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500"
+                  >
+                    {ogData.website.replace(/^https?:\/\//, '')}
+                  </Link>
+                  {' '}for more info.
+                </>
+              ) : (
+                'Please contact them for more info.'
+              )}
+            </p>
           </div>
-        )
-      ) : (
-        <p className="mt-6 text-xl text-center text-red-500">Account creation is currently disabled for this OG.</p>
+        )}
+      </div>
+
+      {/* GroupEnsurance Section - Moved up */}
+      {buyingEnabled && (
+        <div className="w-full" id="distribution">
+          <GroupEnsurance 
+            ogName={currentOG?.og_name?.startsWith('.') ? currentOG.og_name.slice(1) : currentOG?.og_name || ''} 
+            groupEnsuranceText={ogData?.group_ensurance}
+          />
+        </div>
+      )}
+
+      {/* Features Section - Moved down */}
+      {buyingEnabled && (
+        <div className="w-full">
+          <AccountFeatures 
+            ogName={currentOG?.og_name?.startsWith('.') ? currentOG.og_name.slice(1) : currentOG?.og_name || ''} 
+            tagline={ogData?.tagline}
+          />
+        </div>
       )}
     </div>
   );

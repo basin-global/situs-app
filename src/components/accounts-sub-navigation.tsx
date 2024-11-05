@@ -36,6 +36,18 @@ export function AccountsSubNavigation() {
             CREATE
           </Link>
         </li>
+        <li>
+          <Link 
+            href={`/${og}/accounts/mine`} 
+            className={`px-4 py-2 rounded-md transition-colors duration-200 ${
+              isActive('/accounts/mine') 
+                ? 'bg-blue-500 text-white' 
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+            }`}
+          >
+            MINE
+          </Link>
+        </li>
       </ul>
     </nav>
   )

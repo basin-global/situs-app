@@ -3,6 +3,8 @@ import { base } from 'viem/chains';
 import { sql } from '@vercel/postgres';
 import OGABI from '@/abi/SitusOG.json';
 import { useOG } from '@/contexts/og-context';
+import { calculateTBA } from '@/utils/tba';
+import type { ValidationReport } from '@/types';
 
 // Define a type alias for Ethereum addresses
 type Address = `0x${string}`;
@@ -33,7 +35,7 @@ function getClient(): PublicClient<HttpTransport, Chain> {
   }
 }
 
-function sanitizeOGName(og: string): string {
+export function sanitizeOGName(og: string): string {
   return og.startsWith('.') ? og.slice(1) : og;
 }
 
@@ -160,119 +162,103 @@ async function getTokenOwner(client: PublicClient, contractAddress: Address, tok
 }
 
 export async function updateSitusDatabase() {
-  console.log('updateSitusDatabase function called');
   const client = getClient();
 
   try {
-    console.log('Step 1: Calling getTldsArray...');
     const ogs = await client.readContract({
       address: FACTORY_ADDRESS,
       abi: FACTORY_ABI,
       functionName: 'getTldsArray',
     }) as string[];
-    console.log(`Retrieved ${ogs.length} OGs from the factory contract:`, ogs);
     
-    let totalAccountsProcessed = 0;
-    let totalNewAccountsAdded = 0;
-
     for (const og of ogs) {
-      try {
-        console.log(`\nProcessing OG: ${og}`);
-        const contractAddress = await client.readContract({
-          address: FACTORY_ADDRESS,
-          abi: FACTORY_ABI,
-          functionName: 'tldNamesAddresses',
-          args: [og],
-        }) as Address;
-        console.log(`Contract address for ${og}: ${contractAddress}`);
+      const contractAddress = await client.readContract({
+        address: FACTORY_ADDRESS,
+        abi: FACTORY_ABI,
+        functionName: 'tldNamesAddresses',
+        args: [og],
+      }) as Address;
+      
+      // Get total supply from contract
+      const totalSupply = await client.readContract({
+        address: contractAddress,
+        abi: OGABI,
+        functionName: 'totalSupply',
+      }) as bigint;
+
+      // Update OGs table with total supply
+      await sql`
+        INSERT INTO situs_ogs (og_name, contract_address, total_supply)
+        VALUES (${og}, ${contractAddress}, ${Number(totalSupply)})
+        ON CONFLICT (og_name) DO UPDATE SET
+          contract_address = ${contractAddress},
+          total_supply = ${Number(totalSupply)}
+      `;
+      
+      const sanitizedOG = sanitizeOGName(og);
+
+      // Verify database matches contract state
+      const dbAccounts = await sql.query(`
+        SELECT token_id, account_name, tba_address 
+        FROM situs_accounts_${sanitizedOG}
+        ORDER BY token_id ASC
+      `);
+
+      // Check if database count matches totalSupply
+      if (dbAccounts.rows.length !== Number(totalSupply)) {
+        console.log(`Mismatch found for ${og}: DB has ${dbAccounts.rows.length} accounts, contract has ${totalSupply}`);
+      }
+
+      // Verify each token ID and name matches the contract
+      for (let i = BigInt(1); i <= totalSupply; i++) {
+        const contractName = await client.readContract({
+          address: contractAddress,
+          abi: OGABI,
+          functionName: 'domainIdsNames',
+          args: [i],
+        }) as string;
+
+        const dbAccount = dbAccounts.rows.find(row => Number(row.token_id) === Number(i));
         
-        // Update situs_ogs table
-        await sql`
-          INSERT INTO situs_ogs (og_name, contract_address, last_updated)
-          VALUES (${og}, ${contractAddress}, CURRENT_TIMESTAMP)
-          ON CONFLICT (og_name) DO UPDATE SET
-            contract_address = ${contractAddress},
-            last_updated = CURRENT_TIMESTAMP
-        `;
-        
-        const sanitizedOG = sanitizeOGName(og);
-        // Ensure the accounts table exists with the new columns
-        await sql.query(`
-          CREATE TABLE IF NOT EXISTS situs_accounts_${sanitizedOG} (
-            token_id INTEGER PRIMARY KEY,
-            account_name TEXT NOT NULL,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-            tba_address VARCHAR(42) UNIQUE,
-            owner_of VARCHAR(42)
-          )
-        `);
-
-        // Add new columns if they don't exist
-        await sql.query(`
-          DO $$
-          BEGIN
-            BEGIN
-              ALTER TABLE situs_accounts_${sanitizedOG} ADD COLUMN tba_address VARCHAR(42);
-            EXCEPTION
-              WHEN duplicate_column THEN NULL;
-            END;
-            BEGIN
-              ALTER TABLE situs_accounts_${sanitizedOG} ADD COLUMN owner_of VARCHAR(42);
-            EXCEPTION
-              WHEN duplicate_column THEN NULL;
-            END;
-          END $$;
-        `);
-
-        // Fetch all accounts for this OG
-        const accounts = await fetchAccountsForOG(client, contractAddress, og);
-        console.log(`Retrieved ${accounts.length} accounts for OG ${og}`);
-
-        // Get existing accounts
-        const existingAccounts = await sql.query(`
-          SELECT token_id, account_name, tba_address, owner_of FROM situs_accounts_${sanitizedOG}
-        `);
-        const existingAccountMap = new Map(existingAccounts.rows.map(row => [row.token_id, { name: row.account_name, tba: row.tba_address, owner: row.owner_of }]));
-
-        // Insert or update accounts
-        for (const account of accounts) {
-          const existingAccount = existingAccountMap.get(account.token_id);
-          const owner = await getTokenOwner(client, contractAddress, BigInt(account.token_id));
-
-          if (!existingAccount) {
-            await sql.query(`
-              INSERT INTO situs_accounts_${sanitizedOG} (token_id, account_name, owner_of)
-              VALUES ($1, $2, $3)
-              ON CONFLICT (token_id) DO UPDATE SET
-                account_name = EXCLUDED.account_name,
-                owner_of = EXCLUDED.owner_of
-            `, [Number(account.token_id), account.account_name, owner]);
-            totalNewAccountsAdded++;
-            console.log(`Added new account: ${account.account_name} (${account.token_id}) for OG ${og} with Owner: ${owner}`);
-          } else {
-            // Update if owner has changed
-            if (existingAccount.owner !== owner) {
-              await sql.query(`
-                UPDATE situs_accounts_${sanitizedOG}
-                SET owner_of = $2
-                WHERE token_id = $1
-              `, [Number(account.token_id), owner]);
-              console.log(`Updated account: ${account.account_name} (${account.token_id}) for OG ${og} with Owner: ${owner}`);
-            }
-          }
+        if (!dbAccount) {
+          // Missing account in DB
+          const tba = await calculateTBA(contractAddress, Number(i));
+          await sql.query(`
+            INSERT INTO situs_accounts_${sanitizedOG} 
+              (token_id, account_name, tba_address)
+            VALUES ($1, $2, $3)
+          `, [Number(i), contractName, tba]);
+          console.log(`Added missing account ${contractName} (${i}) to DB`);
+        } else if (dbAccount.account_name !== contractName) {
+          // Name mismatch
+          console.error(`Name mismatch for token ${i}: DB has ${dbAccount.account_name}, contract has ${contractName}`);
+          // Update to match contract
+          await sql.query(`
+            UPDATE situs_accounts_${sanitizedOG}
+            SET account_name = $2
+            WHERE token_id = $1
+          `, [Number(i), contractName]);
         }
 
-        totalAccountsProcessed += accounts.length;
-        console.log(`Processed ${accounts.length} accounts for OG ${og}`);
-
-      } catch (error) {
-        console.error(`Error processing OG ${og}:`, error);
-        // Continue to the next OG if there's an error
+        // Ensure TBA exists and is correct
+        if (!dbAccount?.tba_address) {
+          const tba = await calculateTBA(contractAddress, Number(i));
+          await sql.query(`
+            UPDATE situs_accounts_${sanitizedOG}
+            SET tba_address = $2
+            WHERE token_id = $1
+          `, [Number(i), tba]);
+        }
       }
+
+      // Remove any accounts that don't exist in contract
+      await sql.query(`
+        DELETE FROM situs_accounts_${sanitizedOG}
+        WHERE token_id > $1
+      `, [Number(totalSupply)]);
     }
-    
-    console.log(`Situs database update completed. Total accounts processed: ${totalAccountsProcessed}, New accounts added: ${totalNewAccountsAdded}`);
-    return { totalAccountsProcessed, totalNewAccountsAdded };
+
+    return { success: true, message: 'Database synchronized with contract state' };
   } catch (error) {
     console.error('Error in updateSitusDatabase:', error);
     throw error;
@@ -303,7 +289,8 @@ export async function getOGByName(name: string) {
       email,
       website,
       chat,
-      total_supply
+      total_supply,
+      group_ensurance
     FROM situs_ogs 
     WHERE og_name = ${name}
   `;
@@ -342,6 +329,260 @@ export async function getAccountByName(og: string, accountName: string) {
     return account;
   } catch (error) {
     console.error(`Error fetching account ${accountName} for OG ${og}:`, error);
+    throw error;
+  }
+}
+
+export async function verifyDatabaseState(): Promise<ValidationReport> {
+  console.log('Starting database verification...');
+  const client = getClient();
+  const report = {
+    ogs: { 
+      total: 0, 
+      missing: [] as string[], 
+      invalid: [] as string[],
+      totalSupplyMismatch: [] as string[]
+    },
+    accounts: { total: 0, missing: [] as string[], invalid: [] as string[], missingTBA: [] as string[] },
+    summary: ''
+  };
+
+  try {
+    console.log('Fetching OGs from blockchain...');
+    const onchainOGs = await client.readContract({
+      address: FACTORY_ADDRESS,
+      abi: FACTORY_ABI,
+      functionName: 'getTldsArray',
+    }) as string[];
+    console.log(`Found ${onchainOGs.length} OGs on chain:`, onchainOGs);
+
+    console.log('Fetching OGs from database...');
+    const dbOGs = await sql`SELECT og_name, contract_address, total_supply FROM situs_ogs`;
+    console.log(`Found ${dbOGs.rows.length} OGs in database`);
+    
+    report.ogs.total = onchainOGs.length;
+
+    for (const og of onchainOGs) {
+      console.log(`\nVerifying OG: ${og}`);
+      const contractAddress = await client.readContract({
+        address: FACTORY_ADDRESS,
+        abi: FACTORY_ABI,
+        functionName: 'tldNamesAddresses',
+        args: [og],
+      }) as Address;
+
+      // Get total supply from contract
+      const contractTotalSupply = await client.readContract({
+        address: contractAddress,
+        abi: OGABI,
+        functionName: 'totalSupply',
+      }) as bigint;
+
+      // Get OG data from database and check everything at once
+      const dbOG = dbOGs.rows.find(row => row.og_name === og);
+      if (!dbOG) {
+        report.ogs.missing.push(og);
+      } else {
+        // Check contract address
+        if (dbOG.contract_address.toLowerCase() !== contractAddress.toLowerCase()) {
+          report.ogs.invalid.push(`${og} (DB: ${dbOG.contract_address}, Chain: ${contractAddress})`);
+        }
+        // Check total supply
+        if (dbOG.total_supply !== Number(contractTotalSupply)) {
+          report.ogs.totalSupplyMismatch.push(
+            `${og} (DB: ${dbOG.total_supply || 'null'}, Chain: ${contractTotalSupply})`
+          );
+        }
+      }
+
+      // Check accounts
+      const sanitizedOG = sanitizeOGName(og);
+      const totalSupply = await client.readContract({
+        address: contractAddress,
+        abi: OGABI,
+        functionName: 'totalSupply',
+      }) as bigint;
+
+      // Get all accounts from database
+      const dbAccounts = await sql.query(`
+        SELECT token_id, account_name, tba_address 
+        FROM situs_accounts_${sanitizedOG}
+        ORDER BY token_id ASC
+      `);
+
+      report.accounts.total += Number(totalSupply);
+
+      // Check each token ID
+      for (let i = BigInt(1); i <= totalSupply; i++) {
+        const contractName = await client.readContract({
+          address: contractAddress,
+          abi: OGABI,
+          functionName: 'domainIdsNames',
+          args: [i],
+        }) as string;
+
+        const dbAccount = dbAccounts.rows.find(row => Number(row.token_id) === Number(i));
+        
+        if (!dbAccount) {
+          report.accounts.missing.push(`${og}:${contractName} (ID: ${i})`);
+        } else {
+          if (dbAccount.account_name !== contractName) {
+            report.accounts.invalid.push(
+              `${og}:${dbAccount.account_name} (DB) vs ${contractName} (Chain) - ID: ${i}`
+            );
+          }
+          if (!dbAccount.tba_address) {
+            report.accounts.missingTBA.push(`${og}:${contractName} (ID: ${i})`);
+          }
+        }
+      }
+
+      // Check for extra accounts in database
+      const extraAccounts = dbAccounts.rows.filter(row => Number(row.token_id) > Number(totalSupply));
+      if (extraAccounts.length > 0) {
+        report.accounts.invalid.push(
+          ...extraAccounts.map(acc => `${og}:${acc.account_name} (Extra in DB, ID: ${acc.token_id})`)
+        );
+      }
+    }
+
+    console.log('\nVerification complete. Generating report...');
+    // Generate summary
+    report.summary = `
+Database Verification Report:
+----------------------------
+OGs Total: ${report.ogs.total}
+Missing OGs: ${report.ogs.missing.length}
+Invalid OG Addresses: ${report.ogs.invalid.length}
+Total Supply Mismatches: ${report.ogs.totalSupplyMismatch.length}
+
+Accounts Total: ${report.accounts.total}
+Missing Accounts: ${report.accounts.missing.length}
+Invalid Accounts: ${report.accounts.invalid.length}
+Missing TBA Addresses: ${report.accounts.missingTBA.length}
+
+${report.ogs.missing.length > 0 ? `\nMissing OGs:\n${report.ogs.missing.join('\n')}` : ''}
+${report.ogs.invalid.length > 0 ? `\nInvalid OG Addresses:\n${report.ogs.invalid.join('\n')}` : ''}
+${report.ogs.totalSupplyMismatch.length > 0 ? `\nTotal Supply Mismatches:\n${report.ogs.totalSupplyMismatch.join('\n')}` : ''}
+${report.accounts.missing.length > 0 ? `\nMissing Accounts:\n${report.accounts.missing.join('\n')}` : ''}
+${report.accounts.invalid.length > 0 ? `\nInvalid Accounts:\n${report.accounts.invalid.join('\n')}` : ''}
+${report.accounts.missingTBA.length > 0 ? `\nMissing TBA Addresses:\n${report.accounts.missingTBA.join('\n')}` : ''}
+    `;
+
+    return report;
+  } catch (error) {
+    console.error('Error verifying database state:', error);
+    throw error;
+  }
+}
+
+export async function fixMismatches(report: ValidationReport) {
+  console.log('Starting fixMismatches with report:', {
+    missingAccounts: report.accounts.missing.length,
+    invalidAccounts: report.accounts.invalid.length,
+    totalSupplyMismatches: report.ogs.totalSupplyMismatch.length
+  });
+
+  const client = getClient();
+  const results = {
+    fixed: {
+      accounts: [] as string[],
+      totalSupply: [] as string[],
+      tbaAddresses: [] as string[],
+    },
+    failed: [] as string[],
+    total: 0
+  };
+
+  try {
+    const accountsToFix = Array.from(new Set([...report.accounts.missing, ...report.accounts.invalid]));
+    console.log('Accounts to fix:', accountsToFix);
+    
+    for (const accountInfo of accountsToFix) {
+      console.log('\nProcessing account:', accountInfo);
+      const [og, accountDetails] = accountInfo.split(':');
+      try {
+        console.log('Getting contract address for OG:', og);
+        const contractAddress = await client.readContract({
+          address: FACTORY_ADDRESS,
+          abi: FACTORY_ABI,
+          functionName: 'tldNamesAddresses',
+          args: [og],
+        }) as Address;
+        console.log('Contract address:', contractAddress);
+
+        // Try to extract token ID from the account info
+        let tokenId = Number(accountInfo.match(/ID: (\d+)\)$/)?.[1]);
+        let contractName: string;
+
+        // If we couldn't get the token ID from the string, try using domains method
+        if (!tokenId || isNaN(tokenId)) {
+          console.log('Token ID not found in string, trying domains method');
+          const accountName = accountDetails.split(' ')[0]; // Get the name part
+          console.log('Looking up domain:', accountName);
+          
+          const domainInfo = await client.readContract({
+            address: contractAddress,
+            abi: OGABI,
+            functionName: 'domains',
+            args: [accountName],
+          }) as { name: string; tokenId: bigint; holder: string; data: string };
+
+          console.log('Domain info:', domainInfo);
+          
+          if (domainInfo && domainInfo.tokenId) {
+            tokenId = Number(domainInfo.tokenId);
+            contractName = domainInfo.name;
+            console.log('Found token ID from domains:', tokenId);
+          } else {
+            console.warn('Failed to get token info from domains method');
+            results.failed.push(`Failed to get info: ${accountInfo}`);
+            continue;
+          }
+        } else {
+          // Get the name from contract if we had the token ID
+          contractName = await client.readContract({
+            address: contractAddress,
+            abi: OGABI,
+            functionName: 'domainIdsNames',
+            args: [BigInt(tokenId)],
+          }) as string;
+        }
+
+        console.log('Calculating TBA...');
+        const tba = await calculateTBA(contractAddress, tokenId);
+        console.log('TBA calculated:', tba);
+        
+        const sanitizedOG = sanitizeOGName(og);
+        console.log('Inserting into database for OG:', sanitizedOG);
+        
+        await sql.query(`
+          INSERT INTO situs_accounts_${sanitizedOG} 
+            (token_id, account_name, tba_address)
+          VALUES ($1, $2, $3)
+          ON CONFLICT (token_id) DO UPDATE SET
+            account_name = $2,
+            tba_address = $3
+        `, [tokenId, contractName, tba]);
+
+        results.fixed.accounts.push(`${og}:${contractName}`);
+        results.total++;
+        console.log('Successfully fixed account:', `${og}:${contractName}`);
+      } catch (error) {
+        console.error(`Failed to fix account ${accountInfo}:`, error);
+        results.failed.push(`Account: ${accountInfo}`);
+      }
+    }
+
+    console.log('\nFix results:', {
+      totalFixed: results.total,
+      accountsFixed: results.fixed.accounts.length,
+      failed: results.failed.length
+    });
+
+    return results;
+  } catch (error) {
+    console.error('Error in fixMismatches:', error);
     throw error;
   }
 }

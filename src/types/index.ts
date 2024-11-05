@@ -1,4 +1,4 @@
- // Situs Types
+// Situs Types
 // This file defines TypeScript interfaces and types specific to the Situs project.
 // These types are used throughout the application to ensure type safety and provide
 // better developer experience with autocompletion and error checking.
@@ -12,18 +12,130 @@ export interface OG {
     tagline?: string; // Add this line, making it optional
     description?: string; // Add this line, making it optional
     chat?: string; // Add this line, making it optional
-    total_supply?: number; // Add this line, making it optional
+    total_supply: number; // Add this line, making it required
     website?: string; // Add this line, making it optional
+    group_ensurance?: string; // Add this new field
     // ... other properties
   };
   
   export interface OgAccount {
-    token_id: number;
     account_name: string;
-    created_at: string;
-    tba_address?: string; // Optional, as it might be empty in the database
+    token_id: string;
+    tba_address: string;
+    og_name: string;
+    id?: string;
+  }
+
+  export interface ValidationReport {
+    ogs: {
+      total: number;
+      missing: string[];
+      invalid: string[];
+      totalSupplyMismatch: string[];
+    };
+    accounts: {
+      total: number;
+      missing: string[];
+      invalid: string[];
+      missingTBA: string[];
+    };
+    summary: string;
   }
 
   // If needed, we can keep OgConfig as an alias for OG
   export type OgConfig = OG;
 
+  // Add or update the AllAccountsProps interface
+  export interface AllAccountsProps {
+    og: string;
+    accounts: OgAccount[];
+    searchQuery: string;
+    hideOgSuffix?: boolean;
+    showCreateOption?: boolean;
+    getAccountUrl?: (account: OgAccount) => string;  // Add this line
+  }
+
+  // Base interface for any digital asset
+  interface BaseAsset {
+    chain: string;
+    contract_address: string;
+    token_id: string;
+    queried_wallet_balances?: Array<{
+      quantity_string: string;
+      value_usd_string?: string;
+      address?: string;
+      first_acquired_date?: string;
+      last_acquired_date?: string;
+      quantity?: number;
+    }>;
+  }
+
+  // Regular NFT Asset
+  export interface Asset extends BaseAsset {
+    name?: string;
+    image_url?: string;
+    video_url?: string;
+    audio_url?: string;
+    description?: string;
+    nft_id?: string;
+    isTokenbound?: boolean;
+    isNative?: boolean;
+    collection?: {
+      name?: string;
+    };
+    contract?: {
+      type?: string;
+    };
+    owners?: Array<{
+      owner_address: string;
+      quantity: number;
+    }>;
+    extra_metadata?: {
+      animation_original_url?: string;
+    };
+    symbol?: string;
+  }
+
+  // Currency specific
+  export interface TokenBalance {
+    chain: string;
+    symbol: string;
+    fungible_id?: string;
+    decimals: number;
+    name?: string;
+    queried_wallet_balances: Array<{
+      quantity_string: string;
+      value_usd_string: string;
+    }>;
+    prices?: Array<{
+      value_usd_string: string;
+      marketplace_name: string;
+    }>;
+  }
+
+  export type EnsureOperation = 'send' | 'buy' | 'sell' | 'convert' | 'ensure' | 'hide' | 'burn' | 'swap';
+
+  export interface EnsureModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    operation: EnsureOperation;
+    asset: Asset;
+    address: string;
+    isTokenbound: boolean;
+    onAction: () => Promise<{ hash: string }>;
+  }
+
+  export interface EnsurancePreviewProps {
+    contractAddress: string;
+    og: string;
+  }
+
+  // Import from tokenbound SDK
+  import type { TokenboundClient } from "@tokenbound/sdk";
+
+  // Define just what we need for TokenboundActions
+  export interface TokenboundActions {
+    isAccountDeployed: (params: { accountAddress: string }) => Promise<boolean>;
+    createAccount?: (params: { tokenContract: string; tokenId: string }) => Promise<string>;
+    executeCall?: (params: { account: string; to: string; value: string; data: string }) => Promise<{ hash: string }>;
+  }

@@ -46,7 +46,7 @@ export default function AllOGs() {
           Local Is Global
         </h2>
         <p className="text-xl text-center mb-12 max-w-3xl mx-auto">
-        These groups are taking systemic risk head on by investing in natural assets and societal well-being.
+        These 14 groups with over 600 members are taking systemic risk head on by investing in natural assets and societal well-being.
         </p>
         {loading && <p>Loading...</p>}
         {error && <p className="text-red-500">{error}</p>}

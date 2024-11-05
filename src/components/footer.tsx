@@ -11,9 +11,14 @@ import ReferralComponent from './ReferralComponent'  // Import the ReferralCompo
 export default function Footer() {
   const { currentOG } = useOG()
   const pathname = usePathname()
+  const pathParts = pathname.split('/')
+  
+  // Only consider it an OG page if the first part matches an OG name
+  const isOGPage = currentOG?.og_name.replace(/^\./, '') === pathParts[1]
+
   const iconSize = 24
 
-  const [darkMode, setDarkMode] = useState(true) // Set default to true for dark mode
+  const [darkMode, setDarkMode] = useState(true) // Keep this for now
   const { authenticated } = usePrivy()
   const [ethPrice, setEthPrice] = useState<number | null>(null)
 
@@ -44,18 +49,6 @@ export default function Footer() {
     }
   }, [authenticated])
 
-  const toggleDarkMode = (value: boolean) => {
-    setDarkMode(value)
-    if (value) {
-      document.documentElement.classList.add('dark')
-    } else {
-      document.documentElement.classList.remove('dark')
-    }
-    localStorage.setItem('darkMode', value.toString())
-  }
-
-  const isOGPage = pathname.split('/')[1] !== ''
-
   return (
     <footer className="bg-gray-800 dark:bg-gray-900 text-white py-8">
       <div className="container mx-auto px-4">
@@ -65,14 +58,20 @@ export default function Footer() {
               Home
             </Link>
             {authenticated && (
-              <Link href="/profile" className="text-foreground dark:text-foreground-dark hover:text-accent dark:hover:text-accent-dark transition-colors duration-300">
+              <Link href="/member/profile" className="text-foreground dark:text-foreground-dark hover:text-accent dark:hover:text-accent-dark transition-colors duration-300">
                 Profile
               </Link>
             )}
           </div>
           <div className="flex space-x-6 items-center">
             <Link href="https://warpcast.com/~/channel/situs" target="_blank" rel="noopener noreferrer">
-              <Image src="/footer/warpcast.png" alt="Warpcast" width={iconSize} height={iconSize} />
+              <Image 
+                src="/footer/warpcast.png" 
+                alt="Warpcast"
+                width={24}
+                height={24}
+                className="h-6 w-6"
+              />
             </Link>
             <Link href="https://docs.situs.ac" target="_blank" rel="noopener noreferrer">
               <Image src="/footer/gitbook.png" alt="Situs Docs" width={iconSize} height={iconSize} />
@@ -99,20 +98,6 @@ export default function Footer() {
             )}
           </div>
           <div className="flex flex-col items-center space-y-2">
-            <div className="flex items-center space-x-2">
-              <span 
-                className={`cursor-pointer transition-opacity duration-300 ${darkMode ? 'opacity-50' : 'opacity-100'}`}
-                onClick={() => toggleDarkMode(false)}
-              >
-                ☀️
-              </span>
-              <span 
-                className={`cursor-pointer transition-opacity duration-300 ${darkMode ? 'opacity-100' : 'opacity-50'}`}
-                onClick={() => toggleDarkMode(true)}
-              >
-                🌙
-              </span>
-            </div>
             {authenticated && ethPrice && (
               <span className="font-mono text-sm text-gray-400">
                 ETH: ${ethPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}

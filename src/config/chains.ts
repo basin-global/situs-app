@@ -5,6 +5,7 @@ interface PrivyChain extends Chain {
   isTestnet: boolean;
   isActive: boolean;
   iconPath: string;
+  viemName: string;
 }
 
 export const chainOrder = ['base', 'zora', 'arbitrum', 'optimism', 'celo', 'polygon', 'ethereum'];
@@ -14,6 +15,7 @@ export const supportedChains: PrivyChain[] = [
     id: 8453,
     name: 'Base',
     simplehashName: 'base',
+    viemName: 'base',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://mainnet.base.org'] },
@@ -29,6 +31,7 @@ export const supportedChains: PrivyChain[] = [
     id: 1,
     name: 'Ethereum',
     simplehashName: 'ethereum',
+    viemName: 'mainnet',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://ethereum.publicnode.com'] },
@@ -45,6 +48,7 @@ export const supportedChains: PrivyChain[] = [
     id: 10,
     name: 'Optimism',
     simplehashName: 'optimism',
+    viemName: 'optimism',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://mainnet.optimism.io'] },
@@ -60,6 +64,7 @@ export const supportedChains: PrivyChain[] = [
     id: 42161,
     name: 'Arbitrum One',
     simplehashName: 'arbitrum',
+    viemName: 'arbitrum',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://arb1.arbitrum.io/rpc'] },
@@ -75,6 +80,7 @@ export const supportedChains: PrivyChain[] = [
     id: 7777777,
     name: 'Zora',
     simplehashName: 'zora',
+    viemName: 'zora',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://rpc.zora.energy'] },
@@ -90,6 +96,7 @@ export const supportedChains: PrivyChain[] = [
     id: 42220,
     name: 'Celo',
     simplehashName: 'celo',
+    viemName: 'celo',
     nativeCurrency: { name: 'CELO', symbol: 'CELO', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://forno.celo.org'] },
@@ -98,13 +105,14 @@ export const supportedChains: PrivyChain[] = [
       default: { name: 'CeloScan', url: 'https://celoscan.org' },
     },
     isTestnet: false,
-    isActive: true,
+    isActive: false,
     iconPath: '/assets/icons/celo.svg',
   },
   {
     id: 137,
     name: 'Polygon',
     simplehashName: 'polygon',
+    viemName: 'polygon',
     nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
     rpcUrls: {
       default: { http: ['https://polygon-rpc.com'] },

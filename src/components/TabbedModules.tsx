@@ -1,8 +1,9 @@
-import React, { useState, lazy, Suspense, useEffect, useCallback } from 'react'
+import React, { useState, lazy, Suspense, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation';
 import { getActiveChains, chainOrder } from '@/config/chains'
 import { ensuranceContracts, isEnsuranceToken } from '@/modules/ensurance/config'
 import * as Tooltip from '@radix-ui/react-tooltip'
+import { ChainDropdown } from './ChainDropdown';
 
 const AssetsModule = lazy(() => import('@/modules/assets'))
 const CurrencyModule = lazy(() => import('@/modules/currency'))
@@ -17,41 +18,70 @@ interface TabData {
   component: React.LazyExoticComponent<any>;
   showChainDropdown: boolean;
   isEnsurance?: boolean;
+  isEnsuranceTab?: boolean;
 }
 
-const tabData: TabData[] = [
-  { value: 'ensurance', label: 'Ensurance', component: AssetsModule, showChainDropdown: true, isEnsurance: true },
-  { value: 'ensure', label: 'Ensure', component: EnsureModule, showChainDropdown: false },
-  { value: 'assets', label: 'Assets', component: AssetsModule, showChainDropdown: true },
-  { value: 'currency', label: 'Currency', component: CurrencyModule, showChainDropdown: true },
-  { value: 'reputation', label: 'Reputation', component: ReputationModule, showChainDropdown: false },
-  { value: 'place', label: 'Place', component: PlaceModule, showChainDropdown: false },
-  { value: 'impact', label: 'Impact', component: ImpactModule, showChainDropdown: false },
+interface TabGroup {
+  label: string;
+  tabs: TabData[];
+}
+
+const tabGroups: TabGroup[] = [
+  {
+    label: 'PORTFOLIO',
+    tabs: [
+      { value: 'assets', label: 'assets', component: AssetsModule, showChainDropdown: true },
+      { value: 'currency', label: 'currency', component: CurrencyModule, showChainDropdown: true },
+    ]
+  }
+];
+
+const standardTabs: TabData[] = [
+  { 
+    value: 'ensurance', 
+    label: 'ensurance', 
+    component: AssetsModule, 
+    showChainDropdown: true, 
+    isEnsuranceTab: true  // Renamed from checkOwnership to better reflect its purpose
+  },
+  //{ value: 'ensure', label: 'ensure', component: EnsureModule, showChainDropdown: false },
+  { value: 'place', label: 'place', component: PlaceModule, showChainDropdown: false },
+  { value: 'impact', label: 'impact', component: ImpactModule, showChainDropdown: false },
+  { value: 'reputation', label: 'reputation', component: ReputationModule, showChainDropdown: false },
 ]
 
+// Combine all tabs for lookup purposes
+const tabData: TabData[] = [
+  ...tabGroups[0].tabs,  // Portfolio tabs
+  ...standardTabs        // Standard tabs
+];
+
 interface TabbedModulesProps {
-  tbaAddress: string;
+  address: string;
+  isTokenbound: boolean;
+  isOwner: boolean;
+  initialModule?: string | null;
+  initialChain?: string | null;
 }
 
-export function TabbedModules({ tbaAddress }: TabbedModulesProps) {
+export function TabbedModules({ 
+  address, 
+  isTokenbound = true, 
+  isOwner = false,
+  initialModule,
+  initialChain 
+}: TabbedModulesProps) {
+  console.log('TabbedModules props:', {
+    address,
+    isTokenbound,
+    isOwner
+  });
+
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const moduleFromUrl = urlParams.get('module');
-      return moduleFromUrl || localStorage.getItem('activeTab') || 'assets';
-    }
-    return 'assets';
-  });
+  const [activeTab, setActiveTab] = useState(initialModule || 'assets');
 
-  const [selectedChain, setSelectedChain] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      return urlParams.get('chain') || 'all';
-    }
-    return 'all';
-  });
+  const [selectedChain, setSelectedChain] = useState(initialChain || 'base');
 
   const activeChains = getActiveChains();
 
@@ -97,67 +127,120 @@ export function TabbedModules({ tbaAddress }: TabbedModulesProps) {
 
     if (isPortfolioTab) {
       return isActive
-        ? 'text-gray-900 dark:text-white font-semibold border-2 border-transparent bg-clip-border bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600'
-        : 'text-gray-600 dark:text-gray-300 border-2 border-transparent hover:bg-clip-border hover:bg-gradient-to-r hover:from-amber-300 hover:via-yellow-500 hover:to-amber-600 hover:text-gray-900 hover:dark:text-white'
+        ? 'bg-gradient-to-r from-amber-600/90 to-yellow-500/40 text-white font-semibold shadow-sm'
+        : 'text-gray-500 dark:text-gray-300 hover:bg-gradient-to-r hover:from-amber-600/80 hover:to-yellow-500/30 hover:text-white hover:font-semibold'
     }
 
     return isActive
-      ? 'bg-blue-500 text-white'
-      : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'
+      ? 'bg-gradient-to-r from-slate-700 to-slate-800 text-white font-semibold shadow-sm'
+      : 'text-gray-500 dark:text-gray-300 hover:bg-muted dark:hover:bg-muted-dark'
   }
 
+  const [shouldLoadAssets, setShouldLoadAssets] = useState(false);
+  const assetsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoadAssets(true);
+          observer.disconnect();
+        }
+      },
+      {
+        rootMargin: '100px', // Start loading a bit before the element comes into view
+      }
+    );
+
+    if (assetsRef.current) {
+      observer.observe(assetsRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [activeTab]); // Reset and reobserve when tab changes
+
+  // Set initial values from URL on mount
+  useEffect(() => {
+    if (initialModule && tabData.some(tab => tab.value === initialModule)) {
+      setActiveTab(initialModule);
+    }
+    if (initialChain) {
+      setSelectedChain(initialChain);
+    }
+  }, [initialModule, initialChain]);
+
   return (
-    <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden w-full">
+    <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden w-full -mt-2">
       <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-4 py-2">
-        <div className="flex space-x-2">
-          {tabData.map((tab) => (
-            <Tooltip.Provider key={tab.value}>
-              <Tooltip.Root>
-                <Tooltip.Trigger asChild>
-                  <button
-                    className={`px-4 py-2 rounded-t-lg transition-all duration-200 ${getTabStyle(tab.value)}`}
-                    onClick={() => setActiveTabAndUpdateUrl(tab.value)}
-                  >
-                    {tab.label}
-                  </button>
-                </Tooltip.Trigger>
-                {(tab.value === 'assets' || tab.value === 'currency') && (
-                  <Tooltip.Portal>
-                    <Tooltip.Content
-                      className="bg-black/90 text-white px-3 py-1.5 rounded text-sm font-bold"
-                      sideOffset={5}
+        <div className="flex flex-col">
+          {/* Portfolio Label and Line */}
+          <div className="flex flex-col items-start gap-1">
+            <div className="text-xs font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600">
+              PORTFOLIO
+            </div>
+            <div className="w-[175px] h-[2px] bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600 mb-1" />
+          </div>
+          
+          {/* All tabs in one row */}
+          <div className="flex space-x-2">
+            {/* Portfolio Tabs */}
+            <div className="flex space-x-1">
+              {tabGroups[0].tabs.map((tab) => (
+                <Tooltip.Provider key={tab.value}>
+                  <Tooltip.Root>
+                    <Tooltip.Trigger asChild>
+                      <button
+                        className={`px-4 py-2 rounded-t-lg transition-all duration-200 ${getTabStyle(tab.value)}`}
+                        onClick={() => setActiveTabAndUpdateUrl(tab.value)}
+                      >
+                        {tab.label}
+                      </button>
+                    </Tooltip.Trigger>
+                  </Tooltip.Root>
+                </Tooltip.Provider>
+              ))}
+            </div>
+
+            {/* Standard Tabs */}
+            {standardTabs.map((tab) => (
+              <Tooltip.Provider key={tab.value}>
+                <Tooltip.Root>
+                  <Tooltip.Trigger asChild>
+                    <button
+                      className={`px-4 py-2 rounded-t-lg transition-all duration-200 ${getTabStyle(tab.value)}`}
+                      onClick={() => setActiveTabAndUpdateUrl(tab.value)}
                     >
-                      Portfolio
-                      <Tooltip.Arrow className="fill-black/90" />
-                    </Tooltip.Content>
-                  </Tooltip.Portal>
-                )}
-              </Tooltip.Root>
-            </Tooltip.Provider>
-          ))}
-        </div>
-        {activeTabData?.showChainDropdown && (
-          <select
-            value={selectedChain}
-            onChange={handleChainChange}
-            className="bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md px-2 py-1 text-sm"
-          >
-            {orderedChains.map((chainName) => (
-              <option key={chainName} value={chainName}>
-                {chainName === 'all' ? 'All Chains' : activeChains.find(c => c.simplehashName === chainName)?.name || chainName}
-              </option>
+                      {tab.label}
+                    </button>
+                  </Tooltip.Trigger>
+                </Tooltip.Root>
+              </Tooltip.Provider>
             ))}
-          </select>
+          </div>
+        </div>
+        
+        {/* Replace the chain dropdown with the new component */}
+        {activeTabData?.showChainDropdown && (
+          <ChainDropdown
+            selectedChain={selectedChain}
+            onChange={(chain) => {
+              setSelectedChain(chain);
+              updateUrl(activeTab, chain);
+            }}
+            filterEnsurance={activeTab === 'ensurance'}
+          />
         )}
       </div>
-      <div className="p-4 w-full">
+      <div className="p-4 w-full" ref={assetsRef}>
         <Suspense fallback={<div>Loading...</div>}>
-          {activeTabData && (
+          {activeTabData && shouldLoadAssets && (
             <activeTabData.component
-              key={activeTabData.value}
-              tbaAddress={tbaAddress}
+              key={`${activeTabData.value}-${selectedChain}`}
+              address={address}
               selectedChain={selectedChain}
-              isEnsurance={activeTabData.isEnsurance}
+              isEnsuranceTab={activeTabData.isEnsuranceTab}
+              isTokenbound={isTokenbound}
+              isOwner={isOwner}
             />
           )}
         </Suspense>

@@ -33,22 +33,38 @@ export default function CustomAudioPlayer({ src }: CustomAudioPlayerProps) {
     }
   };
 
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const progressBar = e.currentTarget;
+    const rect = progressBar.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const percentage = (x / rect.width) * 100;
+    
+    if (audioRef.current) {
+      audioRef.current.currentTime = (percentage / 100) * audioRef.current.duration;
+    }
+  };
+
   return (
-    <div className="relative w-full h-full">
+    <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-lg p-4 flex flex-col gap-2">
       <audio ref={audioRef} src={src} className="hidden" />
-      <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+      
+      <div className="flex items-center gap-4">
         <button
           onClick={togglePlay}
-          className="text-white text-6xl focus:outline-none"
+          className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white focus:outline-none"
         >
           {isPlaying ? '❚❚' : '▶'}
         </button>
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200">
-        <div
-          className="h-full bg-blue-500"
-          style={{ width: `${progress}%` }}
-        ></div>
+        
+        <div 
+          className="flex-grow h-2 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer"
+          onClick={handleProgressClick}
+        >
+          <div
+            className="h-full bg-blue-500 rounded-full"
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
       </div>
     </div>
   );

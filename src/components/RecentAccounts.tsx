@@ -18,26 +18,26 @@ export default function RecentAccounts({ og }: RecentAccountsProps) {
 
   const recentAccounts = useMemo(() => {
     return [...accounts]
-      .sort((a, b) => b.token_id - a.token_id)
-      .slice(0, 10)
+      .sort((a, b) => Number(b.token_id) - Number(a.token_id))
+      .slice(0, 12)
   }, [accounts])
 
   if (isLoading) {
-    return <div className="text-center py-4">Loading recent accounts...</div>
+    return <div className="text-center py-2 text-sm text-foreground/60">Loading newest members...</div>
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="space-y-3">
       {recentAccounts.map((account) => (
         <Link
           key={account.token_id}
           href={`/${og}/${account.account_name}`}
           className="block"
         >
-          <div className="bg-muted dark:bg-muted-dark border border-border dark:border-border-dark rounded-lg p-4 transition-colors duration-200 hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent-dark dark:hover:text-accent-dark-foreground">
-            <p className="font-mono text-sm truncate">
+          <div className="bg-primary dark:bg-primary-dark hover:bg-primary-dark dark:hover:bg-primary text-primary-foreground dark:text-primary-dark-foreground py-2.5 px-4 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-[1.02] flex items-center">
+            <span className="text-sm font-mono">
               {account.account_name}.{og}
-            </p>
+            </span>
           </div>
         </Link>
       ))}

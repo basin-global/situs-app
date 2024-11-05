@@ -9,10 +9,11 @@ import Image from 'next/image'
 import { ChevronDown, Wallet, User, LogOut, Settings, UserCircle } from 'lucide-react'
 import { useOG } from '@/contexts/og-context'
 import { OGChooser } from './og-chooser'
-// import { Navigation } from './navigation'
+import { Navigation } from './navigation'
 import { toast } from 'react-toastify'
 import { useRouter } from 'next/navigation'
 import { isAdmin } from '@/utils/adminUtils'
+import { fetchENSName } from '@/lib/simplehash'
 
 // Utility function to truncate addresses
 const truncateAddress = (address: string) => {
@@ -33,7 +34,7 @@ export default function Header() {
 
   const isHomePage = pathname === '/'
   const isProfilePage = pathname.startsWith('/profile')
-  const isAdminPage = pathname.startsWith('/admin')
+  const isAdminPage = pathname.startsWith('/manage')
   const isMemberPage = pathname.startsWith('/member')
   const isAssetsPage = pathname.startsWith('/assets')
   const isOGPage = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage
@@ -52,11 +53,14 @@ export default function Header() {
     const fetchEnsName = async () => {
       if (wallets.length > 0) {
         try {
-          const response = await fetch(`https://api.ensideas.com/ens/resolve/${wallets[0].address}`);
+          console.log('Header - Fetching ENS for wallet:', wallets[0].address);
+          const response = await fetch(`/api/simplehash/ens?address=${wallets[0].address}`);
+          console.log('Header - ENS API response:', await response.clone().json());
           const data = await response.json();
-          setEnsName(data.name || null);
+          console.log('Header - Setting ENS name:', data.name);
+          setEnsName(data.name);
         } catch (error) {
-          console.error('Error fetching ENS name:', error);
+          console.error('Header - Error fetching ENS name:', error);
         }
       }
     };
@@ -86,11 +90,7 @@ export default function Header() {
 
   const handleMyAccountClick = () => {
     if (user?.wallet?.address) {
-      if (ensName) {
-        router.push(`/member/${ensName}`);
-      } else {
-        router.push(`/member/${user.wallet.address}`);
-      }
+      router.push(`/member/${user.wallet.address}`);
       setIsUserMenuOpen(false);
     } else {
       toast.error('Wallet address not available');
@@ -98,43 +98,45 @@ export default function Header() {
   };
 
   return (
-    <header className="bg-gradient-to-r from-secondary to-primary text-white py-6 shadow-lg relative z-50">
-      <div className="container mx-auto px-4">
+    <header className={`bg-gradient-to-r from-secondary to-primary text-white shadow-lg relative z-50 ${
+      isHomePage && !authenticated ? 'py-6' : 'py-3'
+    }`}>
+      <div className="container mx-auto px-4 max-w-7xl">
         <div className="flex justify-between items-center">
           {/* Left side: Logo and OGChooser */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 flex-shrink-0">
             <Link href={logoLink} className="flex items-center">
               <Image 
                 src={logoSrc}
                 alt={isOGPage && currentOG ? `${currentOG.og_name} OG` : "Situs Protocol"}
-                width={60}
-                height={60}
+                width={isOGPage || authenticated ? 45 : 60}
+                height={isOGPage || authenticated ? 45 : 60}
                 priority={true}
-                style={{ width: 'auto', height: 'auto' }}
+                className="object-contain"
               />
               {(isHomePage || isProfilePage || isAdminPage || isMemberPage || isAssetsPage) && (
                 <div className="ml-4">
                   <Image 
                     src="/assets/logos/situs-logo-text.png"
                     alt="Situs Protocol"
-                    width={200}
-                    height={50}
+                    width={authenticated ? 150 : 200}
+                    height={authenticated ? 38 : 50}
                     priority={true}
-                    style={{ width: 'auto', height: 'auto' }}
+                    className="object-contain"
                   />
                 </div>
               )}
             </Link>
             {shouldShowOGChooserAndNavigation && (
-              <div className="w-auto">
+              <div className="w-auto scale-90 origin-left flex-shrink-0">
                 <OGChooser />
               </div>
             )}
           </div>
           
-          {/* Right side: Navigation, Login button or user info */}
-          <div className="flex items-center space-x-6">
-            {/* {shouldShowOGChooserAndNavigation && <Navigation />} */}
+          {/* Right side: Navigation and User Menu */}
+          <div className="flex items-center space-x-6 flex-shrink-0">
+            {shouldShowOGChooserAndNavigation && <Navigation />}
             {!authenticated ? (
               <Button 
                 variant="outline" 
@@ -148,31 +150,26 @@ export default function Header() {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className="flex items-center space-x-2 bg-white/10 px-3 py-1 rounded-full hover:bg-white/20 transition-colors duration-300"
+                  className="flex items-center space-x-2 bg-white/10 px-4 py-2 rounded-full hover:bg-white/20 transition-colors duration-300"
                 >
-                  <span className="text-sm font-medium">
+                  <span className="text-base font-medium">
                     {ensName || (wallets.length > 0 ? truncateAddress(wallets[0].address) : 'No wallet connected')}
                   </span>
-                  <ChevronDown size={16} />
+                  <ChevronDown size={20} />
                 </button>
                 {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 rounded-md shadow-lg bg-[#111] ring-1 ring-black ring-opacity-5 z-50">
-                    <div className="py-1" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
-                      {wallets.map((wallet) => (
-                        <div
-                          key={wallet.address}
-                          className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300"
-                          role="menuitem"
-                        >
-                          {truncateAddress(wallet.address)}
-                        </div>
-                      ))}
+                  <div className="absolute right-0 mt-2 w-64 rounded-md shadow-lg bg-[#111] ring-1 ring-black ring-opacity-5 z-50">
+                    <div className="py-2" role="menu" aria-orientation="vertical" aria-labelledby="options-menu">
+                      <div className="flex flex-col w-full text-left px-4 py-3 text-base text-gray-300">
+                        {ensName && <span className="text-sm text-gray-400 mb-1">{ensName}</span>}
+                        {wallets.length > 0 && truncateAddress(wallets[0].address)}
+                      </div>
                       <button
                         onClick={handleMyAccountClick}
-                        className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                        className="flex items-center w-full text-left px-4 py-3 text-base text-gray-300 hover:bg-gray-800"
                         role="menuitem"
                       >
-                        <UserCircle size={16} className="mr-2" />
+                        <UserCircle size={18} className="mr-3" />
                         My Account
                       </button>
                       <button
@@ -180,22 +177,22 @@ export default function Header() {
                           router.push('/member/profile');
                           setIsUserMenuOpen(false);
                         }}
-                        className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                        className="flex items-center w-full text-left px-4 py-3 text-base text-gray-300 hover:bg-gray-800"
                         role="menuitem"
                       >
-                        <User size={16} className="mr-2" />
+                        <User size={18} className="mr-3" />
                         Profile
                       </button>
                       {isUserAdmin && (
                         <button
                           onClick={() => {
-                            router.push('/admin');
+                            router.push('/manage');
                             setIsUserMenuOpen(false);
                           }}
-                          className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                          className="flex items-center w-full text-left px-4 py-3 text-base text-gray-300 hover:bg-gray-800"
                           role="menuitem"
                         >
-                          <Settings size={16} className="mr-2" />
+                          <Settings size={18} className="mr-3" />
                           Admin
                         </button>
                       )}
@@ -204,10 +201,10 @@ export default function Header() {
                           logout();
                           setIsUserMenuOpen(false);
                         }}
-                        className="flex items-center w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+                        className="flex items-center w-full text-left px-4 py-3 text-base text-gray-300 hover:bg-gray-800"
                         role="menuitem"
                       >
-                        <LogOut size={16} className="mr-2" />
+                        <LogOut size={18} className="mr-3" />
                         Logout
                       </button>
                     </div>

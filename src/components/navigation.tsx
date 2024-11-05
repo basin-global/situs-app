@@ -15,13 +15,13 @@ export function Navigation() {
   return (
     <nav className="flex space-x-2 items-center">
       <Link href={`/${ogPath}/accounts/all`}>
-        <Button variant="ghost" size="sm" className="text-sm font-medium hover:bg-white/10 h-9">Accounts</Button>
+        <Button variant="ghost" size="sm" className="text-xs font-medium text-white/80 hover:bg-white/10 h-9">ACCOUNTS</Button>
       </Link>
-      <Link href={`/${ogPath}/assets`}>
-        <Button variant="ghost" size="sm" className="text-sm font-medium hover:bg-white/10 h-9">Assets</Button>
+      <Link href={`/${ogPath}/ensurance`}>
+        <Button variant="ghost" size="sm" className="text-xs font-medium text-white/80 hover:bg-white/10 h-9">ASSETS</Button>
       </Link>
-      <Link href={`/${ogPath}/currencies`}>
-        <Button variant="ghost" size="sm" className="text-sm font-medium hover:bg-white/10 h-9">Currencies</Button>
+      <Link href={`/${ogPath}/currency`}>
+        <Button variant="ghost" size="sm" className="text-xs font-medium text-white/80 hover:bg-white/10 h-9">CURRENCY</Button>
       </Link>
     </nav>
   )

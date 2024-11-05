@@ -29,6 +29,7 @@ const OGContractInfo: React.FC = () => {
   const [contractInfo, setContractInfo] = useState<any>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ensNames, setEnsNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const fetchContractInfo = async () => {
@@ -105,6 +106,50 @@ const OGContractInfo: React.FC = () => {
     fetchContractInfo();
   }, [currentOG]);
 
+  useEffect(() => {
+    const fetchENSNames = async (addresses: string[]) => {
+      const names: Record<string, string> = {};
+      for (const address of addresses) {
+        try {
+          const response = await fetch(`/api/simplehash/ens?address=${address}`);
+          const data = await response.json();
+          if (data.name) {
+            names[address.toLowerCase()] = data.name;
+          }
+        } catch (error) {
+          console.error('Error fetching ENS for', address, error);
+        }
+      }
+      setEnsNames(names);
+    };
+
+    if (contractInfo) {
+      const addresses = [
+        contractInfo.royaltyFeeReceiver,
+        contractInfo.royaltyFeeUpdater,
+        contractInfo.metadataAddress,
+        contractInfo.minter,
+        contractInfo.tldOwner
+      ].filter(Boolean);
+      
+      fetchENSNames(addresses);
+    }
+  }, [contractInfo]);
+
+  const formatAddress = (address: string) => {
+    const ensName = ensNames[address.toLowerCase()];
+    return (
+      <div className="font-mono text-sm">
+        {truncateAddress(address)}
+        {ensName && (
+          <span className="ml-2 text-gray-500 dark:text-gray-400">
+            ({ensName})
+          </span>
+        )}
+      </div>
+    );
+  };
+
   if (loading) return <div className="text-center py-4 text-foreground dark:text-foreground-dark">Loading contract information...</div>;
   if (error) return <div className="text-center py-4 text-error dark:text-error-dark">Error: {error}</div>;
 
@@ -136,11 +181,20 @@ const OGContractInfo: React.FC = () => {
                   {String(value)}
                 </span>
               )}
-              {key !== 'price' && key !== 'referral' && key !== 'royalty' && key !== 'buyingEnabled' && (
-                typeof value === 'string' && value.startsWith('0x') 
-                  ? truncateAddress(value) 
-                  : String(value)
-              )}
+              {(key === 'royaltyFeeReceiver' || 
+                key === 'royaltyFeeUpdater' || 
+                key === 'metadataAddress' || 
+                key === 'minter' || 
+                key === 'tldOwner') && 
+                typeof value === 'string' && formatAddress(value)
+              }
+              {key !== 'price' && 
+                key !== 'referral' && 
+                key !== 'royalty' && 
+                key !== 'buyingEnabled' && 
+                !['royaltyFeeReceiver', 'royaltyFeeUpdater', 'metadataAddress', 'minter', 'tldOwner'].includes(key) && 
+                String(value)
+              }
             </div>
           </React.Fragment>
         ))}

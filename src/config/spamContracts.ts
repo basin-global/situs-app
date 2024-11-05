@@ -15,6 +15,7 @@ export const spamContracts: SpamContractConfig = {
     '0x0a53A66d7F74233d3Ae7c2301aa26507c766E5e9',
     '0x26c41510cC03269c7fE12e9e0a3057cB325240da',
     '0x5583f33e27567897C240be9B019AdA988e6c5cf9',
+    '0x231D6945078817C2f008B4026263F1d34e332391',
     // Add more Polygon spam contract addresses
   ],
   arbitrum: [
@@ -31,6 +32,9 @@ export const spamContracts: SpamContractConfig = {
   base: [
     '0xeb62e1f0A865fe99468FBCdeFBa5a1f63B01Fc7f',
     '0xd248fe2929e7ea707c4546f0b964f3d8255d4968',
+    '0xCE8486111f3FfA8a4cfA018C4F42c6F79729C88C',
+    '0x282A0745dBB8e14a0E796c30FDc63764751aC581',
+    '0x2F720426b882b9BAb564c9bb036E2ae8b34EBcbE',
     '0x48b7446ced56848580348d06b4fb84d4b5824130',
     // Add Base spam contract addresses
   ],

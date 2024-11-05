@@ -1,35 +1,44 @@
 'use client';
 
-import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { usePrivy } from '@privy-io/react-auth';
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
+import { OgAccount } from '@/types';
+import MyAccounts from '@/components/MyAccounts';
+import { useOG } from '@/contexts/og-context';
+
+interface SimpleHashNFT {
+  token_id: string;
+  name: string;
+  collection?: {
+    name?: string;
+  };
+  contract_address?: string;
+}
+
+interface SimpleHashResponse {
+  nfts: SimpleHashNFT[];
+}
+
+interface OG {
+  contract_address: string;
+  og_name: string;
+}
 
 export default function ProfilePage() {
   const { ready, authenticated, user, logout, login } = usePrivy();
-  const { wallets } = useWallets();
-  const [ensName, setEnsName] = useState<string | null>(null);
+  const { OGs } = useOG();
 
-  useEffect(() => {
-    console.log('Privy ready:', ready);
-    console.log('Authenticated:', authenticated);
-    console.log('Wallets:', wallets);
-  }, [ready, authenticated, wallets]);
+  console.log('Profile Page - OG Context:', useOG());
 
-  useEffect(() => {
-    const fetchEnsName = async () => {
-      if (user?.wallet?.address) {
-        try {
-          const response = await fetch(`https://api.ensideas.com/ens/resolve/${user.wallet.address}`);
-          const data = await response.json();
-          setEnsName(data.name || null);
-        } catch (error) {
-          console.error('Error fetching ENS name:', error);
-        }
-      }
-    };
-
-    fetchEnsName();
-  }, [user]);
+  console.log('Profile Page - Initial Render:', {
+    authenticated,
+    hasUser: !!user,
+    walletAddress: user?.wallet?.address,
+    hasOGs: !!OGs,
+    ogsCount: OGs?.length,
+    OGs
+  });
 
   if (!ready) {
     return <div>Loading Privy...</div>;
@@ -39,88 +48,94 @@ export default function ProfilePage() {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
         <p className="text-xl mb-4 text-gray-700 dark:text-gray-300">Please log in to view your profile.</p>
-        <Button 
-          onClick={login}
-          className="bg-green-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition duration-300"
-        >
-          LOGIN
-        </Button>
+        <Button onClick={login}>Login</Button>
       </div>
     );
   }
 
+  const truncateAddress = (address: string) => {
+    if (!address || address.length <= 10) return address;
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
+
   const getAccountInfo = (account: any) => {
-    switch (account.type) {
-      case 'email':
-        return `Email: ${account.address}`;
-      case 'wallet':
-        return `Wallet: ${account.address}`;
-      case 'phone':
-        return `Phone: ${account.phoneNumber}`;
-      default:
-        return `${account.type}: ${JSON.stringify(account)}`;
+    if (typeof account === 'object' && 'address' in account) {
+      return truncateAddress(account.address);
     }
+    return truncateAddress(account);
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 text-foreground bg-background">
-      <h1 className="text-3xl font-bold mb-6">Your Profile</h1>
-      <div className="bg-muted shadow-xl rounded-lg px-8 pt-6 pb-8 mb-4">
-        <div className="mb-4">
-          <label className="block text-muted-foreground text-sm font-bold mb-2">
-            Wallet Address:
-          </label>
-          <p className="text-foreground">{user?.wallet?.address}</p>
-        </div>
-        {ensName && (
-          <div className="mb-4">
-            <label className="block text-muted-foreground text-sm font-bold mb-2">
-              ENS Name:
+    <div className="container mx-auto px-4 py-12">
+      {/* Navigation Links */}
+      <div className="flex justify-center space-x-8 mb-12">
+        <a href="#accounts" className="text-xl font-mono font-bold text-white hover:text-yellow-300 transition-colors">
+          ACCOUNTS
+        </a>
+        <span className="text-white/30">|</span>
+        <a href="#profile" className="text-xl font-mono font-bold text-white hover:text-yellow-300 transition-colors">
+          PROFILE
+        </a>
+      </div>
+
+      {/* Accounts Section */}
+      <div id="accounts">
+        <MyAccounts />
+      </div>
+
+      {/* Profile Section */}
+      <div id="profile" className="max-w-2xl mx-auto">
+        <div className="bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 space-y-8">
+          <h2 className="text-4xl font-mono font-bold text-gray-900 dark:text-gray-100 text-center">
+            My Profile
+          </h2>
+          
+          {/* Member Account */}
+          <div className="text-center">
+            <label className="block text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">
+              Member Account
             </label>
-            <p className="text-foreground">{ensName}</p>
+            <div className="group relative">
+              <span className="text-xl font-medium text-gray-900 dark:text-gray-100">
+                {truncateAddress(user?.wallet?.address || '')}
+              </span>
+            </div>
           </div>
-        )}
-        <div className="mb-4">
-          <label className="block text-muted-foreground text-sm font-bold mb-2">
-            Email:
-          </label>
-          <p className="text-foreground">{user?.email?.address || 'Not provided'}</p>
+
+          {/* Email */}
+          <div className="text-center">
+            <label className="block text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">
+              Email
+            </label>
+            <p className="text-xl text-gray-900 dark:text-gray-100">
+              {user?.email?.address || 'Not provided'}
+            </p>
+          </div>
+
+          {/* Linked Accounts */}
+          <div className="text-center">
+            <label className="block text-lg font-semibold mb-2 text-gray-700 dark:text-gray-300">
+              Linked Accounts
+            </label>
+            <div className="space-y-2">
+              {user?.linkedAccounts?.map((account, index) => (
+                <p key={index} className="text-xl text-gray-900 dark:text-gray-100">
+                  {getAccountInfo(account)}
+                </p>
+              ))}
+            </div>
+          </div>
+
+          {/* Logout Button */}
+          <div className="pt-4">
+            <Button
+              onClick={logout}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 text-lg rounded-lg transition duration-300"
+            >
+              Logout
+            </Button>
+          </div>
         </div>
-        <div className="mb-4">
-          <label className="block text-muted-foreground text-sm font-bold mb-2">
-            Linked Accounts:
-          </label>
-          <ul className="list-disc list-inside text-foreground">
-            {user?.linkedAccounts?.map((account, index) => (
-              <li key={index}>
-                {getAccountInfo(account)}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="mb-4">
-          <label className="block text-muted-foreground text-sm font-bold mb-2">
-            Connected Wallets:
-          </label>
-          <ul className="list-none text-foreground">
-            {wallets.map((wallet, index) => (
-              <li key={index} className="mb-2">
-                {wallet.address} ({wallet.walletClientType})
-              </li>
-            ))}
-          </ul>
-        </div>
-        
-        {/* Add UserOGs component here */}
-        <div className="mt-8 mb-8 bg-background p-6 rounded-lg shadow-inner">
-        </div>
-        
-        <Button
-          onClick={logout}
-          className="bg-accent text-accent-foreground hover:bg-accent/90"
-        >
-          Logout
-        </Button>
       </div>
     </div>
   );

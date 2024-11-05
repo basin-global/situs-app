@@ -15,20 +15,20 @@ async function getEthPrice() {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const tbaAddress = searchParams.get('tbaAddress');
+  const address = searchParams.get('address');
   const activeChains = getActiveChainNames();
 
   console.log('Native-ERC20 route - Active chains:', activeChains);
-  console.log('Native-ERC20 route - TBA Address:', tbaAddress);
+  console.log('Native-ERC20 route - Address:', address);
 
-  if (!tbaAddress) {
-    return NextResponse.json({ error: 'TBA address is required' }, { status: 400 });
+  if (!address) {
+    return NextResponse.json({ error: 'Address is required' }, { status: 400 });
   }
 
   try {
-    console.log('Fetching all balances for TBA:', tbaAddress, 'Chains:', activeChains);
+    console.log('Fetching all balances for address:', address, 'Chains:', activeChains);
     const [data, ethPrice] = await Promise.all([
-      fetchAllBalances(tbaAddress),
+      fetchAllBalances(address),
       getEthPrice()
     ]);
 

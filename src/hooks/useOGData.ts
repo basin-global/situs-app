@@ -11,6 +11,7 @@ interface OGData {
   website: string;
   total_supply: number;
   chat: string;
+  group_ensurance: string;
   // Add any other fields you need
 }
 
