@@ -88,7 +88,7 @@ export default function MyAccountsPage() {
   }
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value)
+    setSearchQuery(event.target.value || '')
   }
 
   return (
@@ -116,9 +116,9 @@ export default function MyAccountsPage() {
       </div>
       
       <AllAccounts 
-        og={currentOG.og_name.replace(/^\./, '')} 
-        searchQuery={searchQuery}
-        accounts={myAccounts}
+        og={currentOG.og_name?.replace(/^\./, '') || ''} 
+        searchQuery={searchQuery || ''}
+        accounts={myAccounts || []}
         hideOgSuffix={true}
         showCreateOption={true}
       />

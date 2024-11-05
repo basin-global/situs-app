@@ -23,20 +23,27 @@ export default function AllAccounts({ og, searchQuery, accounts: providedAccount
     }
   }, [og, fetchAccounts, providedAccounts])
 
-  const displayAccounts = providedAccounts || contextAccounts
+  const displayAccounts = providedAccounts || contextAccounts || [];
 
   const filteredAccounts = useMemo(() => {
-    return displayAccounts.filter(account => 
-      account.account_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      account.token_id.toString().includes(searchQuery)
-    )
-  }, [displayAccounts, searchQuery])
+    if (!displayAccounts || !searchQuery) return displayAccounts || [];
+    
+    return displayAccounts.filter(account => {
+      const accountName = account?.account_name || '';
+      const tokenId = account?.token_id?.toString() || '';
+      const query = searchQuery.toLowerCase();
+      
+      return accountName.toLowerCase().includes(query) ||
+             tokenId.includes(query);
+    });
+  }, [displayAccounts, searchQuery]);
 
   const getDisplayName = (account: OgAccount) => {
-    if (account.account_name.includes('.')) {
-      return account.account_name;
+    const accountName = account?.account_name || '';
+    if (accountName.includes('.')) {
+      return accountName;
     }
-    return `${account.account_name}.${og}`;
+    return `${accountName}.${og || ''}`;
   };
 
   const constructAccountUrl = (account: OgAccount) => {
@@ -44,12 +51,13 @@ export default function AllAccounts({ og, searchQuery, accounts: providedAccount
       return getAccountUrl(account);
     }
 
-    if (account.account_name.includes('.')) {
-      const [name, ogName] = account.account_name.split('.');
+    const accountName = account?.account_name || '';
+    if (accountName.includes('.')) {
+      const [name, ogName] = accountName.split('.');
       return `/${ogName}/${name}`;
     }
 
-    return `/${og}/${account.account_name}`;
+    return `/${og}/${accountName}`;
   };
 
   if (isLoading && !providedAccounts) {
