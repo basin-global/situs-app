@@ -27,7 +27,7 @@ export default function AllAccounts({ og, searchQuery, setSearchQuery, accounts:
   const displayAccounts = providedAccounts || contextAccounts || [];
 
   const filteredAccounts = useMemo(() => {
-    if (!displayAccounts || !searchQuery) return displayAccounts || [];
+    if (!searchQuery) return displayAccounts;
     
     return displayAccounts.filter(account => {
       const accountName = account?.account_name || '';
