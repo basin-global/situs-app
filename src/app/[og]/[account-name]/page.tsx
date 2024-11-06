@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { OgAccount } from '@/types/index';
 import { useOG } from '@/contexts/og-context';
-import { AccountsSubNavigation } from '@/components/accounts-sub-navigation';
+import { SubNavigation } from '@/components/sub-navigation';
 import AccountContractInfo from '@/components/admin/account-contract-info';
 import { TabbedModules } from '@/components/TabbedModules';
 import { toast } from 'react-toastify';
@@ -175,29 +175,29 @@ export default function AccountPage({ params }: { params: { og: string; 'account
   });
 
   return (
-    <div className="container mx-auto px-4 py-4 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-4 flex justify-center">
-          <AccountsSubNavigation />
+    <div className="container mx-auto px-0 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark min-h-screen">
+      <div className="w-full lg:max-w-6xl lg:mx-auto">
+        <div className="mb-2 flex justify-center">
+          <SubNavigation type="accounts" />
         </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-          <div className="relative group">
+        <div className="bg-white dark:bg-gray-800 rounded-none lg:rounded-lg shadow-md p-0 md:p-4 w-full">
+          <div className="relative group px-4 md:px-0 py-2">
             {account.tba_address ? (
               <p 
-                className="text-sm font-space-mono cursor-pointer text-center mb-2 opacity-0 group-hover:opacity-70 transition-opacity duration-300 delay-300 text-gray-600 dark:text-gray-400"
+                className="text-sm font-space-mono cursor-pointer text-center mb-1 opacity-0 group-hover:opacity-70 transition-opacity duration-300 delay-300 text-gray-600 dark:text-gray-400"
                 onClick={() => copyToClipboard(account.tba_address!)}
               >
                 {account.tba_address}
               </p>
             ) : (
-              <p className="text-sm font-space-mono text-center mb-2 text-gray-600 dark:text-gray-400">
+              <p className="text-sm font-space-mono text-center mb-1 text-gray-600 dark:text-gray-400">
                 TBA address not available
               </p>
             )}
             <div className="flex items-center justify-center gap-2">
               <h1 
-                className={`text-4xl md:text-6xl font-bold mb-2 text-center cursor-pointer ${
+                className={`text-3xl md:text-5xl font-bold mb-1 text-center cursor-pointer ${
                   isOwner ? 'bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600' : ''
                 }`}
                 onClick={() => account.tba_address && copyToClipboard(account.tba_address)}
@@ -218,7 +218,7 @@ export default function AccountPage({ params }: { params: { og: string; 'account
             )}
           </div>
           
-          <div className="mb-6 flex justify-center">
+          <div className="w-full">
             {account?.tba_address && (
               <TabbedModules 
                 address={account.tba_address} 
@@ -231,7 +231,7 @@ export default function AccountPage({ params }: { params: { og: string; 'account
           </div>
         </div>
 
-        <div className={`mt-8 transition-opacity duration-1000 ease-in-out ${showOnchainData ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`mt-4 transition-opacity duration-1000 ease-in-out ${showOnchainData ? 'opacity-100' : 'opacity-0'} px-4 lg:px-0`}>
           {showOnchainData && <AccountContractInfo token_id={parseInt(account.token_id, 10)} />}
         </div>
       </div>

@@ -9,8 +9,7 @@ import RecentAccounts from '@/components/RecentAccounts';
 import AssetCard from '@/modules/assets/AssetCard';
 import EnsurancePreview from '@/components/EnsurancePreview';
 
-
-export default function OgPage(): ReactNode {
+export default function OgPage({ params }: { params: { og: string } }): ReactNode {
   const { currentOG } = useOG();
   const { ogData, isLoading, error } = useOGData();
   const [bannerPath, setBannerPath] = useState<string>('/ogs/banners/basin-banner.jpg');
@@ -38,6 +37,13 @@ export default function OgPage(): ReactNode {
 
   const situs = currentOG.og_name?.replace(/^\./, '').toLowerCase() || '';
 
+  console.log('OG Page Render:', {
+    currentOG,
+    ogData,
+    params,
+    situs
+  });
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-6">
       <div className="relative w-full h-0 pb-[20%] mb-6 rounded-xl overflow-hidden">
@@ -50,11 +56,11 @@ export default function OgPage(): ReactNode {
           className="brightness-75"
         />
         <div className="absolute inset-0 flex items-center bg-gradient-to-r from-black/70 via-black/40 to-transparent">
-          <div className="p-8 max-w-2xl">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 text-white leading-tight whitespace-nowrap">
+          <div className="p-4 md:p-8 max-w-2xl">
+            <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 md:mb-3 text-white leading-tight break-words">
               {ogData?.name_front || currentOG.og_name}
             </h1>
-            <p className="text-lg md:text-xl text-white/90 font-medium tracking-wide">
+            <p className="text-base md:text-lg lg:text-xl text-white/90 font-medium tracking-wide break-words">
               {ogData?.tagline || 'Reducing Risk, Increasing Resilience'}
             </p>
           </div>

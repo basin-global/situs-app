@@ -171,26 +171,29 @@ export function TabbedModules({
 
   return (
     <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-hidden w-full -mt-2">
-      <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 px-4 py-2">
-        <div className="flex flex-col">
-          {/* Portfolio Label and Line */}
+      <div className="flex flex-col border-b border-gray-200 dark:border-gray-700">
+        {/* Portfolio Label and Line */}
+        <div className="px-2 md:px-4">
           <div className="flex flex-col items-start gap-1">
             <div className="text-xs font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600">
               PORTFOLIO
             </div>
             <div className="w-[175px] h-[2px] bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600 mb-1" />
           </div>
-          
-          {/* All tabs in one row */}
-          <div className="flex space-x-2">
+        </div>
+
+        {/* Tabs and Chain Dropdown Container */}
+        <div className="flex items-center justify-between w-full px-0 md:px-4">
+          {/* Tabs Container */}
+          <div className="flex items-center gap-0.5 md:gap-2 overflow-x-auto no-scrollbar py-2 px-1 md:px-0">
             {/* Portfolio Tabs */}
-            <div className="flex space-x-1">
+            <div className="flex gap-0.5 md:gap-1">
               {tabGroups[0].tabs.map((tab) => (
                 <Tooltip.Provider key={tab.value}>
                   <Tooltip.Root>
                     <Tooltip.Trigger asChild>
                       <button
-                        className={`px-4 py-2 rounded-t-lg transition-all duration-200 ${getTabStyle(tab.value)}`}
+                        className={`px-1.5 md:px-4 py-1.5 md:py-2 rounded-t-lg transition-all duration-200 whitespace-nowrap text-xs md:text-base ${getTabStyle(tab.value)}`}
                         onClick={() => setActiveTabAndUpdateUrl(tab.value)}
                       >
                         {tab.label}
@@ -207,7 +210,7 @@ export function TabbedModules({
                 <Tooltip.Root>
                   <Tooltip.Trigger asChild>
                     <button
-                      className={`px-4 py-2 rounded-t-lg transition-all duration-200 ${getTabStyle(tab.value)}`}
+                      className={`px-1.5 md:px-4 py-1.5 md:py-2 rounded-t-lg transition-all duration-200 whitespace-nowrap text-xs md:text-base ${getTabStyle(tab.value)}`}
                       onClick={() => setActiveTabAndUpdateUrl(tab.value)}
                     >
                       {tab.label}
@@ -217,21 +220,26 @@ export function TabbedModules({
               </Tooltip.Provider>
             ))}
           </div>
+
+          {/* Chain Dropdown - moved outside tabs container */}
+          {activeTabData?.showChainDropdown && (
+            <div className="flex-shrink-0">
+              <ChainDropdown
+                selectedChain={selectedChain}
+                onChange={(chain) => {
+                  setSelectedChain(chain);
+                  updateUrl(activeTab, chain);
+                }}
+                filterEnsurance={activeTab === 'ensurance'}
+                className="px-1.5 md:px-4 py-1.5 md:py-2 rounded-t-lg transition-all duration-200 text-gray-500 dark:text-gray-300 hover:bg-muted dark:hover:bg-muted-dark text-xs md:text-base font-sans bg-transparent border-0"
+              />
+            </div>
+          )}
         </div>
-        
-        {/* Replace the chain dropdown with the new component */}
-        {activeTabData?.showChainDropdown && (
-          <ChainDropdown
-            selectedChain={selectedChain}
-            onChange={(chain) => {
-              setSelectedChain(chain);
-              updateUrl(activeTab, chain);
-            }}
-            filterEnsurance={activeTab === 'ensurance'}
-          />
-        )}
       </div>
-      <div className="p-4 w-full" ref={assetsRef}>
+
+      {/* Content */}
+      <div className="p-2 md:p-4 w-full" ref={assetsRef}>
         <Suspense fallback={<div>Loading...</div>}>
           {activeTabData && shouldLoadAssets && (
             <activeTabData.component

@@ -6,6 +6,7 @@ import { ChainDropdown } from '@/components/ChainDropdown';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { AssetSearch } from '@/modules/assets/AssetSearch';
+import { SubNavigation } from '@/components/sub-navigation';
 
 export default function EnsurancePage() {
   const { currentOG } = useOG();
@@ -43,28 +44,37 @@ export default function EnsurancePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
-      <div className="flex flex-col space-y-4 mb-6">
-        <h1 className="text-3xl font-bold">Certificates of Ensurance</h1>
-        <div className="flex flex-col md:flex-row md:items-center gap-4">
-          <div className="flex-grow">
-            <AssetSearch 
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              placeholder="Search certificates..."
-              className="mb-8"
-              isAccountSearch={false}
-            />
-          </div>
+    <div className="container mx-auto px-4 py-4">
+      <div className="mb-4 flex justify-center">
+        <SubNavigation type="ensurance" />
+      </div>
+
+      <h2 className="text-5xl font-mono font-bold mb-4 text-center">
+        <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-500 text-transparent bg-clip-text">
+          Certificates of Ensurance
+        </span>
+      </h2>
+      
+      <div className="relative mb-4">
+        <div className="absolute right-0 top-0">
           <ChainDropdown
             selectedChain={selectedChain}
             onChange={setSelectedChain}
             filterEnsurance={true}
+            className="h-[40px] px-4 py-2 rounded-md transition-all duration-200 text-gray-300 hover:bg-gray-800 text-base font-sans bg-transparent border-0"
+          />
+        </div>
+        <div className="flex justify-center">
+          <AssetSearch 
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            placeholder="Search certificates..."
+            isAccountSearch={false}
           />
         </div>
       </div>
       
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 md:p-6">
         <div className="min-h-[200px]" ref={assetsRef}>
           {connectedAddress ? (
             <AssetsModule

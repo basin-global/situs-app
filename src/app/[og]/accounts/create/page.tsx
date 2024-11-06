@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useOG } from '@/contexts/og-context';
-import { AccountsSubNavigation } from '@/components/accounts-sub-navigation';
+import { SubNavigation } from '@/components/sub-navigation';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { createPublicClient, http, formatEther, parseEther, encodeFunctionData, getAddress, keccak256, toHex } from 'viem';
 import { base } from 'viem/chains';
@@ -508,132 +508,107 @@ const CreateAccountPage = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-8">
-      {/* Create Account Section - Centered with max-width */}
-      <div className="max-w-2xl mx-auto w-full p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-        <div className="mb-8 flex justify-center">
-          <AccountsSubNavigation />
-        </div>
-        <h1 className="text-3xl font-bold mb-6 text-center text-gray-800 dark:text-white">
-          {buyingEnabled ? (
-            <>
-              Create a <span className="og-gradient-text">{currentOG?.og_name}</span> Account
-            </>
-          ) : (
-            <>
-              <span className="og-gradient-text">{currentOG?.og_name}</span> Accounts
-            </>
-          )}
-        </h1>
-
-        {buyingEnabled ? (
-          authenticated && wallets.length > 0 ? (
-            <>
-              <div className="mt-6 space-y-4 flex flex-col items-center">
-                <div className="w-full max-w-md">
-                  <input
-                    type="text"
-                    value={desiredName}
-                    onChange={handleNameChange}
-                    placeholder="Enter desired name"
-                    className="w-full p-3 border rounded-lg text-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-center"
-                  />
-                </div>
-                {validationMessage && <p className="text-red-500 text-lg text-center">{validationMessage}</p>}
-                <p className="text-3xl font-bold text-gray-700 dark:text-gray-300 text-center">
-                  {formatFullName()}
-                </p>
-                <div className="text-center">
-                  <p className="text-lg text-gray-700 dark:text-gray-300">
-                    Price: <span className="font-semibold">{formatEther(priceWei)} ETH</span>
-                    {ethUsdPrice && (
-                      <span className="ml-2 text-sm">
-                        (~${formatUsdPrice(parseFloat(formatEther(priceWei)), ethUsdPrice)} USD)
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-sm text-green-600 dark:text-green-400 mt-1 font-medium italic">
-                    One-time purchase, no renewal fees
-                  </p>
-                </div>
-                <button
-                  onClick={handleCreateAccount}
-                  disabled={loading || !!validationMessage}
-                  className="w-full max-w-md bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-300"
-                >
-                  {loading ? 'Creating...' : 'CREATE ACCOUNT'}
-                </button>
-              </div>
-
-              <div className="mt-12 flex flex-col sm:flex-row justify-center gap-4 sm:gap-8 text-center text-sm">
-                <a 
-                  href="#features" 
-                  className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-300 transition-colors"
-                >
-                  Why should I want a {currentOG?.og_name} account?
-                </a>
-                <a 
-                  href="#distribution" 
-                  className="text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-300 transition-colors"
-                >
-                  What does my purchase go to?
-                </a>
-              </div>
-            </>
-          ) : (
-            <div className="mt-6 text-center">
-              <p className="text-xl mb-4 text-gray-700 dark:text-gray-300">Please login and connect a wallet to create an account</p>
-              <button
-                onClick={login}
-                className="bg-green-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition duration-300"
-              >
-                LOGIN
-              </button>
-            </div>
-          )
-        ) : (
-          <div className="mt-6 text-center">
-            <p className="text-xl text-red-500">
-              This Group is by invite, application, or referral only.{' '}
-              {ogData?.website ? (
-                <>
-                  Please contact them at{' '}
-                  <Link 
-                    href={ogData.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500"
-                  >
-                    {ogData.website.replace(/^https?:\/\//, '')}
-                  </Link>
-                  {' '}for more info.
-                </>
-              ) : (
-                'Please contact them for more info.'
-              )}
-            </p>
-          </div>
-        )}
+    <div className="container mx-auto px-4 py-4">
+      <div className="mb-4 flex justify-center">
+        <SubNavigation type="accounts" />
       </div>
 
-      {/* GroupEnsurance Section - Moved up */}
-      {buyingEnabled && (
-        <div className="w-full" id="distribution">
-          <GroupEnsurance 
-            ogName={currentOG?.og_name?.startsWith('.') ? currentOG.og_name.slice(1) : currentOG?.og_name || ''} 
-            groupEnsuranceText={ogData?.group_ensurance}
-          />
+      <h2 className="text-5xl font-mono font-bold mb-4 text-center">
+        Create{' '}
+        <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-500 text-transparent bg-clip-text">
+          .{currentOG?.og_name.replace(/^\./, '')}
+        </span>
+        {' '}Account
+      </h2>
+
+      {buyingEnabled ? (
+        authenticated && wallets.length > 0 ? (
+          <div className="mt-6 space-y-4 flex flex-col items-center">
+            <div className="w-full max-w-md">
+              <input
+                type="text"
+                value={desiredName}
+                onChange={handleNameChange}
+                placeholder="Enter desired name"
+                className="w-full p-3 border rounded-lg text-lg bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white text-center"
+              />
+            </div>
+            {validationMessage && <p className="text-red-500 text-lg text-center">{validationMessage}</p>}
+            <p className="text-3xl font-bold text-gray-700 dark:text-gray-300 text-center">
+              {formatFullName()}
+            </p>
+            <div className="text-center">
+              <p className="text-lg text-gray-700 dark:text-gray-300">
+                Price: <span className="font-semibold">{formatEther(priceWei)} ETH</span>
+                {ethUsdPrice && (
+                  <span className="ml-2 text-sm">
+                    (~${formatUsdPrice(parseFloat(formatEther(priceWei)), ethUsdPrice)} USD)
+                  </span>
+                )}
+              </p>
+              <p className="text-sm text-green-600 dark:text-green-400 mt-1 font-medium italic">
+                One-time purchase, no renewal fees
+              </p>
+            </div>
+            <button
+              onClick={handleCreateAccount}
+              disabled={loading || !!validationMessage}
+              className="w-full max-w-md bg-blue-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition duration-300"
+            >
+              {loading ? 'Creating...' : 'CREATE ACCOUNT'}
+            </button>
+          </div>
+        ) : (
+          <div className="mt-6 text-center">
+            <p className="text-xl mb-4 text-gray-700 dark:text-gray-300">Please login and connect a wallet to create an account</p>
+            <button
+              onClick={login}
+              className="bg-green-600 text-white p-3 rounded-lg text-lg font-semibold hover:bg-green-700 transition duration-300"
+            >
+              LOGIN
+            </button>
+          </div>
+        )
+      ) : (
+        <div className="mt-6 text-center">
+          <p className="text-xl text-red-500">
+            This Group is by invite, application, or referral only.{' '}
+            {ogData?.website ? (
+              <>
+                Please contact them at{' '}
+                <Link 
+                  href={ogData.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500"
+                >
+                  {ogData.website.replace(/^https?:\/\//, '')}
+                </Link>
+                {' '}for more info.
+              </>
+            ) : (
+              'Please contact them for more info.'
+            )}
+          </p>
         </div>
       )}
 
-      {/* Features Section - Moved down */}
       {buyingEnabled && (
-        <div className="w-full">
-          <AccountFeatures 
-            ogName={currentOG?.og_name?.startsWith('.') ? currentOG.og_name.slice(1) : currentOG?.og_name || ''} 
-            tagline={ogData?.tagline}
-          />
-        </div>
+        <>
+          <div className="w-full mt-12" id="distribution">
+            <GroupEnsurance 
+              ogName={currentOG?.og_name?.startsWith('.') ? currentOG.og_name.slice(1) : currentOG?.og_name || ''} 
+              groupEnsuranceText={ogData?.group_ensurance}
+            />
+          </div>
+
+          <div className="w-full">
+            <AccountFeatures 
+              ogName={currentOG?.og_name?.startsWith('.') ? currentOG.og_name.slice(1) : currentOG?.og_name || ''} 
+              tagline={ogData?.tagline}
+            />
+          </div>
+        </>
       )}
     </div>
   );
