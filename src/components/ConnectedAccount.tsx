@@ -102,20 +102,20 @@ export function ConnectedAccount() {
   }
 
   return (
-    <div className="relative" ref={userMenuRef}>
+    <div className="relative -mr-2 md:mr-0" ref={userMenuRef}>
       <button
         onClick={handleMenuToggle}
-        className="flex items-center space-x-2 bg-white/10 px-3 md:px-4 py-2 rounded-full hover:bg-white/20 transition-colors duration-300 cursor-pointer"
+        className="flex items-center space-x-2 bg-white/10 px-2 md:px-4 py-2 rounded-full hover:bg-white/20 transition-colors duration-300 cursor-pointer"
         style={{ 
           minHeight: '42px',
         }}
       >
-        <span className="text-base font-medium truncate max-w-[120px] md:max-w-none">
+        <span className="text-sm md:text-base font-medium truncate max-w-[80px] md:max-w-[120px]">
           {ensName || (wallets.length > 0 ? truncateAddress(wallets[0].address) : 'No wallet connected')}
         </span>
         <ChevronDown 
-          size={20} 
-          className={`transition-transform duration-200 flex-shrink-0 ${isUserMenuOpen ? 'rotate-180' : ''}`} 
+          size={18}
+          className={`transition-transform duration-200 flex-shrink-0 ${isUserMenuOpen ? 'rotate-180' : ''}`}
         />
       </button>
       {isUserMenuOpen && (
@@ -124,11 +124,10 @@ export function ConnectedAccount() {
           onClick={() => setIsUserMenuOpen(false)}
         >
           <div 
-            className="absolute w-[calc(100%-2rem)] md:w-64 bg-[#111] rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1"
+            className="absolute right-2 md:right-0 w-[calc(100%-1rem)] md:w-64 bg-[#111] rounded-md shadow-lg ring-1 ring-black ring-opacity-5 py-1"
             style={{
               top: '60px',
               zIndex: 101,
-              right: '1rem', // 1rem padding on mobile and desktop
             }}
             onClick={(e) => e.stopPropagation()}
           >

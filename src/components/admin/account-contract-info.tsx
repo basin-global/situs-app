@@ -102,20 +102,24 @@ export default function AccountContractInfo({ token_id }: AccountContractInfoPro
   const truncateAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`;
 
   return (
-    <div className="bg-muted dark:bg-muted-dark border border-border dark:border-border-dark rounded-lg p-6 animate-fade-in-up">
+    <div className="bg-muted dark:bg-muted-dark border border-border dark:border-border-dark rounded-lg p-4 md:p-6 max-w-5xl mx-auto">
       <h2 className="text-lg font-medium mb-4 text-foreground dark:text-foreground-dark">Onchain Data</h2>
-      <div className="flex items-start space-x-6">
+      <div className="flex flex-col md:flex-row md:items-start gap-4 md:gap-6">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={contractInfo.image} alt={contractInfo.name} className="w-32 h-32 object-cover rounded" />
+        <img 
+          src={contractInfo.image} 
+          alt={contractInfo.name} 
+          className="w-full md:w-32 h-32 object-cover rounded" 
+        />
         <div className="space-y-2 font-mono text-sm text-foreground dark:text-foreground-dark">
           <div className="flex items-center">
             <span className="font-semibold mr-2">Name:</span>
-            <span className={isOwner ? 'bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600 font-bold' : ''}>
+            <span className={`break-all ${isOwner ? 'bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600 font-bold' : ''}`}>
               {contractInfo.name}
             </span>
             {isOwner && (
               <div 
-                className="w-2 h-2 rounded-full bg-green-500 ml-2"
+                className="w-2 h-2 flex-shrink-0 rounded-full bg-green-500 ml-2"
                 title="You own this account"
               />
             )}
@@ -142,7 +146,7 @@ export default function AccountContractInfo({ token_id }: AccountContractInfoPro
               {truncateAddress(contractInfo.owner)}
             </Link>
             {ownerEns && (
-              <span className="ml-2 text-gray-500 dark:text-gray-400">
+              <span className="ml-2 text-gray-500 dark:text-gray-400 break-all">
                 ({ownerEns})
               </span>
             )}

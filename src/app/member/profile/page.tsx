@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { OgAccount } from '@/types';
 import MyAccounts from '@/components/MyAccounts';
 import { useOG } from '@/contexts/og-context';
+import { AssetSearch } from '@/modules/assets/AssetSearch';
 
 interface SimpleHashNFT {
   token_id: string;
@@ -28,6 +29,7 @@ interface OG {
 export default function ProfilePage() {
   const { ready, authenticated, user, logout, login } = usePrivy();
   const { OGs } = useOG();
+  const [searchQuery, setSearchQuery] = useState('');
 
   console.log('Profile Page - OG Context:', useOG());
 
@@ -79,12 +81,24 @@ export default function ProfilePage() {
       </div>
 
       {/* Accounts Section */}
-      <div id="accounts">
-        <MyAccounts />
+      <div id="accounts" className="mb-16 max-w-5xl mx-auto">
+        <h2 className="text-4xl font-mono font-bold mb-8 text-white text-center">
+          My Accounts
+        </h2>
+        
+        <AssetSearch 
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          placeholder="Search accounts..."
+          className="mb-8"
+          isAccountSearch={true}
+        />
+
+        <MyAccounts searchQuery={searchQuery} />
       </div>
 
       {/* Profile Section */}
-      <div id="profile" className="max-w-2xl mx-auto">
+      <div id="profile" className="max-w-2xl mx-auto mt-12">
         <div className="bg-white dark:bg-gray-800 shadow-xl rounded-2xl p-8 space-y-8">
           <h2 className="text-4xl font-mono font-bold text-gray-900 dark:text-gray-100 text-center">
             My Profile

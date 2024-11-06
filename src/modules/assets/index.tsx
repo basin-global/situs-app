@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ensuranceContracts, isEnsuranceToken } from '@/modules/ensurance/config'
 import InfiniteScroll from 'react-infinite-scroll-component'
-import { AssetSearch } from './AssetSearch'
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { getChainBySimplehashName, getActiveChains } from '@/config/chains';
 import { TokenboundClient } from "@tokenbound/sdk";
@@ -53,6 +52,8 @@ interface AssetsModuleProps {
   isEnsuranceTab?: boolean;
   isTokenbound: boolean;
   isOwner?: boolean;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
 export default function AssetsModule({ 
@@ -61,6 +62,8 @@ export default function AssetsModule({
   isEnsuranceTab,
   isTokenbound,
   isOwner = false,
+  searchQuery,
+  setSearchQuery,
 }: AssetsModuleProps) {
   const { wallets } = useWallets();
   const { currentOG } = useOG();
@@ -71,7 +74,6 @@ export default function AssetsModule({
   const [displayedChains, setDisplayedChains] = useState<string[]>([]);
   const [ownedNFTs, setOwnedNFTs] = useState<any[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const CHAINS_PER_LOAD = 2;
 
   console.log('AssetsModule rendered with address:', address, 'selectedChain:', selectedChain)
@@ -235,7 +237,7 @@ export default function AssetsModule({
   // Filter displayed assets based on search query
   const filteredAssets = useMemo(() => {
     return displayedAssets.filter(asset => {
-      const searchLower = searchQuery.toLowerCase();
+      const searchLower = (searchQuery || '').toLowerCase();
       return (
         asset.name?.toLowerCase().includes(searchLower) ||
         asset.collection?.name?.toLowerCase().includes(searchLower) ||
@@ -257,12 +259,6 @@ export default function AssetsModule({
 
   return (
     <div className="bg-transparent">
-      <AssetSearch 
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        placeholder={`Search ${isEnsuranceTab ? 'ensurance' : ''} assets...`}
-      />
-
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {[...Array(8)].map((_, index) => (

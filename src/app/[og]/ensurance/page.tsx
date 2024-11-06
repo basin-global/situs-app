@@ -5,6 +5,7 @@ import AssetsModule from '@/modules/assets';
 import { ChainDropdown } from '@/components/ChainDropdown';
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
+import { AssetSearch } from '@/modules/assets/AssetSearch';
 
 export default function EnsurancePage() {
   const { currentOG } = useOG();
@@ -13,6 +14,7 @@ export default function EnsurancePage() {
   const { wallets } = useWallets();
   const [shouldLoadAssets, setShouldLoadAssets] = useState(false);
   const assetsRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Get the connected address
   const connectedAddress = useMemo(() => {
@@ -28,7 +30,6 @@ export default function EnsurancePage() {
     return result;
   }, [authenticated, user?.wallet?.address, connectedAddress]);
 
-  // Set shouldLoadAssets to true immediately if we have an address
   useEffect(() => {
     if (connectedAddress) {
       console.log('Ensurance Page - Setting shouldLoadAssets to true');
@@ -41,22 +42,26 @@ export default function EnsurancePage() {
     return null;
   }
 
-  console.log('Ensurance Page - Rendering with:', {
-    authenticated,
-    connectedAddress,
-    shouldLoadAssets,
-    selectedChain
-  });
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
+    <div className="container mx-auto px-4 py-6">
+      <div className="flex flex-col space-y-4 mb-6">
         <h1 className="text-3xl font-bold">Certificates of Ensurance</h1>
-        <ChainDropdown
-          selectedChain={selectedChain}
-          onChange={setSelectedChain}
-          filterEnsurance={true}
-        />
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex-grow">
+            <AssetSearch 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              placeholder="Search certificates..."
+              className="mb-8"
+              isAccountSearch={false}
+            />
+          </div>
+          <ChainDropdown
+            selectedChain={selectedChain}
+            onChange={setSelectedChain}
+            filterEnsurance={true}
+          />
+        </div>
       </div>
       
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
@@ -68,6 +73,8 @@ export default function EnsurancePage() {
               isEnsuranceTab={true}
               isTokenbound={false}
               isOwner={isOwner}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
             />
           ) : (
             <div className="text-center py-8">

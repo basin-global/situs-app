@@ -1,13 +1,18 @@
 'use client'
 
-import React from 'react'
-import { useEffect, useState } from 'react'
-import { OG } from '@/types' // Updated import statement
+import React, { useState, useEffect, useMemo } from 'react'
+import { OG } from '@/types'
 import { getOGs } from '@/config/og'
 import Link from 'next/link'
 import Image from 'next/image'
+import { AssetSearch } from '@/modules/assets/AssetSearch'
 
-export default function AllOGs() {
+interface AllOGsProps {
+  searchQuery?: string;
+  setSearchQuery: (query: string) => void;
+}
+
+export default function AllOGs({ searchQuery = '', setSearchQuery }: AllOGsProps) {
   const [ogs, setOgs] = useState<OG[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -39,20 +44,42 @@ export default function AllOGs() {
     return `/ogs/orbs/${ogName.replace(/^\./, '')}-orb.png`
   }
 
+  const filteredOGs = useMemo(() => {
+    if (!ogs || !searchQuery) return ogs || [];
+    
+    return ogs.filter(og => {
+      const ogName = og.og_name.toLowerCase();
+      const query = searchQuery.toLowerCase();
+      return ogName.includes(query);
+    });
+  }, [ogs, searchQuery]);
+
   return (
-    <div className="bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark p-8">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-5xl font-mono font-bold mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
+    <div className="bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
+        <h2 id="local-is-global" className="text-5xl font-mono font-bold mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-purple-600">
           Local Is Global
         </h2>
-        <p className="text-xl text-center mb-12 max-w-3xl mx-auto">
-        These 14 groups with over 600 members are taking systemic risk head on by investing in natural assets and societal well-being.
+        <p className="text-xl text-center mb-8 max-w-3xl mx-auto">
+          These 14 groups with over 600 members are taking systemic risk head on by investing in natural assets and societal well-being.
         </p>
+
+        {searchQuery !== undefined && (
+          <div className="mb-8">
+            <AssetSearch 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              placeholder="Search groups..."
+            />
+          </div>
+        )}
+
         {loading && <p>Loading...</p>}
         {error && <p className="text-red-500">{error}</p>}
-        {!loading && !error && ogs.length === 0 && <p>No OGs found.</p>}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {ogs.map((og) => (
+        {!loading && !error && filteredOGs.length === 0 && <p>No OGs found.</p>}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+          {filteredOGs.map((og) => (
             <Link
               key={og.contract_address}
               href={`/${og.og_name.replace(/^\./, '')}`}

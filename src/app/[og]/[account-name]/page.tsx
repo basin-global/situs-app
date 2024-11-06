@@ -176,10 +176,11 @@ export default function AccountPage({ params }: { params: { og: string; 'account
 
   return (
     <div className="container mx-auto px-4 py-4 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark">
-      <div className="mb-4 flex justify-center">
-        <AccountsSubNavigation />
-      </div>
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-4 flex justify-center">
+          <AccountsSubNavigation />
+        </div>
+
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
           <div className="relative group">
             {account.tba_address ? (
@@ -194,9 +195,9 @@ export default function AccountPage({ params }: { params: { og: string; 'account
                 TBA address not available
               </p>
             )}
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-2">
               <h1 
-                className={`text-6xl font-bold mb-2 text-center cursor-pointer ${
+                className={`text-4xl md:text-6xl font-bold mb-2 text-center cursor-pointer ${
                   isOwner ? 'bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600' : ''
                 }`}
                 onClick={() => account.tba_address && copyToClipboard(account.tba_address)}
@@ -205,7 +206,7 @@ export default function AccountPage({ params }: { params: { og: string; 'account
               </h1>
               {isOwner && (
                 <div 
-                  className="w-3 h-3 rounded-full bg-green-500 ml-2"
+                  className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-500 flex-shrink-0"
                   title="You own this account"
                 />
               )}

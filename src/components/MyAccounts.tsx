@@ -15,11 +15,14 @@ interface SimpleHashNFT {
   contract_address?: string;
 }
 
-export default function MyOGAccounts() {
+interface MyAccountsProps {
+  searchQuery: string;
+}
+
+export default function MyAccounts({ searchQuery }: MyAccountsProps) {
   const { user } = usePrivy();
   const { OGs } = useOG();
   const [myAccounts, setMyAccounts] = useState<OgAccount[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const fetchAllOGAccounts = async () => {
@@ -58,24 +61,11 @@ export default function MyOGAccounts() {
 
   return (
     <div className="mb-16 max-w-5xl mx-auto">
-      <h2 className="text-4xl font-mono font-bold mb-8 text-white text-center">
-        My Accounts
-      </h2>
-      
-      <div className="mb-8 max-w-md mx-auto">
-        <input
-          type="text"
-          placeholder="Search accounts..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white bg-white dark:bg-gray-700"
-        />
-      </div>
-
       <AllAccounts 
         og=""
         accounts={myAccounts}
         searchQuery={searchQuery}
+        setSearchQuery={() => {}}
         hideOgSuffix={true}
         showCreateOption={false}
         getAccountUrl={(account: OgAccount) => {

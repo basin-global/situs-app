@@ -6,6 +6,7 @@ import AllAccounts from '@/components/allAccounts'
 import { AccountsSubNavigation } from '@/components/accounts-sub-navigation'
 import { usePrivy } from '@privy-io/react-auth'
 import { OgAccount } from '@/types'
+import { AssetSearch } from '@/modules/assets/AssetSearch'
 
 interface SimpleHashNFT {
   token_id: string;
@@ -87,10 +88,6 @@ export default function MyAccountsPage() {
     )
   }
 
-  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value || '')
-  }
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="mb-8 flex justify-center">
@@ -105,19 +102,18 @@ export default function MyAccountsPage() {
         {' '}Accounts
       </h2>
       
-      <div className="mb-8 max-w-md mx-auto">
-        <input
-          type="text"
-          placeholder="Search accounts..."
-          value={searchQuery}
-          onChange={handleSearchChange}
-          className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-800 dark:text-white bg-white dark:bg-gray-700"
-        />
-      </div>
+      <AssetSearch 
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        placeholder="Search accounts..."
+        className="mb-8"
+        isAccountSearch={true}
+      />
       
       <AllAccounts 
         og={currentOG.og_name?.replace(/^\./, '') || ''} 
-        searchQuery={searchQuery || ''}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
         accounts={myAccounts || []}
         hideOgSuffix={true}
         showCreateOption={true}

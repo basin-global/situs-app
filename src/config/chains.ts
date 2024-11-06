@@ -62,7 +62,7 @@ export const supportedChains: PrivyChain[] = [
   },
   {
     id: 42161,
-    name: 'Arbitrum One',
+    name: 'Arbitrum',
     simplehashName: 'arbitrum',
     viemName: 'arbitrum',
     nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },

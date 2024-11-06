@@ -8,13 +8,14 @@ import { OgAccount } from '@/types'
 interface AllAccountsProps {
   og: string
   searchQuery: string
+  setSearchQuery: (query: string) => void
   accounts?: OgAccount[]
   hideOgSuffix?: boolean
   showCreateOption?: boolean
   getAccountUrl?: (account: OgAccount) => string
 }
 
-export default function AllAccounts({ og, searchQuery, accounts: providedAccounts, hideOgSuffix = false, showCreateOption = false, getAccountUrl }: AllAccountsProps) {
+export default function AllAccounts({ og, searchQuery, setSearchQuery, accounts: providedAccounts, hideOgSuffix = false, showCreateOption = false, getAccountUrl }: AllAccountsProps) {
   const { accounts: contextAccounts, fetchAccounts, isLoading } = useOG()
 
   useEffect(() => {
@@ -69,8 +70,8 @@ export default function AllAccounts({ og, searchQuery, accounts: providedAccount
   }
 
   return (
-    <div className="bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark p-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark p-4 md:p-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         {filteredAccounts.length === 0 && (
           <div className="text-center">
             <p className="mb-4">No accounts found matching your search.</p>
