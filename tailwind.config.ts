@@ -9,10 +9,13 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      screens: {
+        'xs': '475px',
+      },
       fontFamily: {
         sans: ['var(--font-space-grotesk)', ...fontFamily.sans],
         mono: ['var(--font-space-mono)', ...fontFamily.mono],
-        display: ['var(--font-space-mono)', ...fontFamily.mono], // Changed this line
+        display: ['var(--font-space-mono)', ...fontFamily.mono],
       },
       fontSize: {
         'xs': '0.75rem',
@@ -72,7 +75,7 @@ const config: Config = {
         },
       },
       letterSpacing: {
-        'mono-display': '0.1em', // Adjust this value as needed
+        'mono-display': '0.1em',
       },
       keyframes: {
         'fade-in-up': {
@@ -92,7 +95,7 @@ const config: Config = {
     },
   },
   plugins: [],
-  darkMode: 'class', // Enable dark mode
+  darkMode: 'class',
 }
 
 export default config
