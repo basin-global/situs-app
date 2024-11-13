@@ -21,10 +21,21 @@ export default function AllOGs({ searchQuery = '', setSearchQuery }: AllOGsProps
     async function fetchOGs() {
       try {
         setLoading(true)
-        const OGs = await getOGs()
-        console.log('Fetched OGs:', OGs)
-        setOgs(OGs)
-        console.log('OGs state set:', OGs) // Add this line
+        const fetchedOGs = await getOGs()
+        // Transform database rows into OG objects
+        const transformedOGs: OG[] = fetchedOGs.map(row => ({
+          og_name: row.og_name,
+          contract_address: row.contract_address,
+          name: row.name_front || '',
+          email: row.email || '',
+          total_supply: row.total_supply || 0,
+          tagline: row.tagline || '',
+          description: row.description || '',
+          website: row.website || '',
+          chat: row.chat || '',
+          group_ensurance: row.group_ensurance || false
+        }))
+        setOgs(transformedOGs)
       } catch (err) {
         setError('Failed to fetch OGs')
         console.error('Error fetching OGs:', err)

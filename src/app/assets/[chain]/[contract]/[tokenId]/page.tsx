@@ -275,7 +275,7 @@ export default function AssetDetailPage({ params }: { params: { chain: string; c
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <div>
-                        <p className="text-gray-400 text-sm">Contract</p>
+                        <p className="text-gray-400 text-sm">Collection</p>
                         <p className="text-gray-200 text-sm font-mono">
                           {truncateAddress(assetDetails.contract_address || '')}
                         </p>

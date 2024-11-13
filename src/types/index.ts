@@ -23,6 +23,7 @@ export interface OG {
     token_id: string;
     tba_address: string;
     og_name: string;
+    description?: string;
     id?: string;
   }
 

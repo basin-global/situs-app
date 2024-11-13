@@ -7,6 +7,7 @@ import { isAdmin } from '@/utils/adminUtils';
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { toast } from 'react-toastify';
 import { ValidationReport } from '@/types';
+import { updateEnsuranceDatabase } from '@/lib/database';
 
 interface MissingAccount {
   og: string;
@@ -46,8 +47,9 @@ export default function AdminPage() {
   const [verificationReport, setVerificationReport] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [missingAccounts, setMissingAccounts] = useState<Array<{og: string, name: string, id: number}>>([]);
-  const [isFixing, setIsFixing] = useState(false);
   const [verificationData, setVerificationData] = useState<ValidationReport | null>(null);
+  const [ensuranceStatus, setEnsuranceStatus] = useState<string>('');
+  const [ensuranceLoading, setEnsuranceLoading] = useState(false);
 
   useEffect(() => {
     if (ready && authenticated && wallets.length > 0) {
@@ -73,7 +75,8 @@ export default function AdminPage() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          walletAddress: wallets[0].address
+          walletAddress: wallets[0].address,
+          type: 'og-accounts'
         })
       });
 
@@ -81,6 +84,19 @@ export default function AdminPage() {
       if (data.report) {
         setVerificationReport(data.report.summary);
         setVerificationData(data.report);
+        
+        if (data.report.accounts?.missing?.length > 0) {
+          toast.info(`Found ${data.report.accounts.missing.length} missing accounts`, {
+            position: "top-right",
+            autoClose: 5000
+          });
+        }
+        if (data.report.accounts?.missingTBA?.length > 0) {
+          toast.info(`Found ${data.report.accounts.missingTBA.length} missing TBA addresses`, {
+            position: "top-right",
+            autoClose: 5000
+          });
+        }
         
         if (data.report.accounts?.missing && Array.isArray(data.report.accounts.missing)) {
           const parsed = data.report.accounts.missing
@@ -107,33 +123,28 @@ export default function AdminPage() {
     }
   };
 
-  const handleFixMismatches = async () => {
-    if (!wallets[0]?.address || !verificationData) return;
+  const handleEnsuranceUpdate = async () => {
+    if (!wallets[0]?.address) return;
     
-    setIsFixing(true);
+    setEnsuranceLoading(true);
+    setEnsuranceStatus('Updating ensurance database...');
+    
     try {
-      const response = await fetch('/api/fix-database', {
+      const response = await fetch('/api/verify-database', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           walletAddress: wallets[0].address,
-          report: verificationData
+          type: 'ensurance'
         })
       });
 
       const data = await response.json();
       if (data.success) {
-        toast.success(data.message, {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
-
+        setEnsuranceStatus(data.message);
+        
         if (data.details) {
           Object.entries(data.details).forEach(([key, message]) => {
             if (message && typeof message === 'string' && !message.includes('Fixed 0')) {
@@ -148,23 +159,12 @@ export default function AdminPage() {
             }
           });
         }
-
-        setTimeout(() => {
-          handleVerifyDatabase();
-        }, 2000);
       }
     } catch (error) {
-      console.error('Error fixing database:', error);
-      toast.error('Failed to fix database mismatches', {
-        position: "top-right",
-        autoClose: 8000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-      });
+      console.error('Error updating ensurance:', error);
+      setEnsuranceStatus('Error updating ensurance database');
     } finally {
-      setIsFixing(false);
+      setEnsuranceLoading(false);
     }
   };
 
@@ -183,33 +183,56 @@ export default function AdminPage() {
         </Link>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-8">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold">Database Verification</h2>
-          <div className="space-x-4">
-            <button
-              onClick={handleVerifyDatabase}
-              disabled={isVerifying}
-              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
-            >
-              {isVerifying ? 'Verifying...' : 'Verify Database'}
-            </button>
-            {verificationData && (
-              <button
-                onClick={handleFixMismatches}
-                disabled={isFixing}
-                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:bg-gray-400 transition-colors"
-              >
-                {isFixing ? 'Fixing...' : 'Fix Mismatches'}
-              </button>
-            )}
-          </div>
+          <h2 className="text-xl font-semibold">OG Accounts & TBA Verification</h2>
+          <button
+            onClick={handleVerifyDatabase}
+            disabled={isVerifying}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+          >
+            {isVerifying ? 'Verifying...' : 'Verify OG Accounts'}
+          </button>
         </div>
 
         {verificationReport && (
           <div className="mt-4">
             <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg overflow-auto whitespace-pre-wrap text-sm font-mono">
               {verificationReport}
+            </pre>
+          </div>
+        )}
+
+        {missingAccounts.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-lg font-semibold mb-2">Missing Accounts</h3>
+            <ul className="list-disc pl-5">
+              {missingAccounts.map((account, index) => (
+                <li key={index}>
+                  {account.og}: {account.name} (ID: {account.id})
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold">Ensurance NFT Verification</h2>
+          <button
+            onClick={handleEnsuranceUpdate}
+            disabled={ensuranceLoading}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+          >
+            {ensuranceLoading ? 'Verifying...' : 'Verify Ensurance NFTs'}
+          </button>
+        </div>
+
+        {ensuranceStatus && (
+          <div className="mt-4">
+            <pre className="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg overflow-auto whitespace-pre-wrap text-sm font-mono">
+              {ensuranceStatus}
             </pre>
           </div>
         )}

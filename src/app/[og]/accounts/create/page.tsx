@@ -15,7 +15,6 @@ import { getReferral, clearReferral } from '@/utils/referralUtils';
 import { calculateTBA } from '@/utils/tba';
 import Link from 'next/link';
 import { GroupEnsurance } from '@/components/group-ensurance';
-import { useOGData } from '@/hooks/useOGData';
 import { AccountFeatures } from '@/components/account-features';
 
 const publicClient = createPublicClient({
@@ -59,9 +58,8 @@ const CreateAccountPage = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [validationMessage, setValidationMessage] = useState<string | null>(null);
   const [ethUsdPrice, setEthUsdPrice] = useState<number | null>(null);
-  const { ogData } = useOGData();
 
-  console.log('OG Data:', ogData);
+  console.log('OG Data:', currentOG);
 
   const searchParams = useSearchParams();
 
@@ -573,16 +571,16 @@ const CreateAccountPage = () => {
         <div className="mt-6 text-center">
           <p className="text-xl text-red-500">
             This Group is by invite, application, or referral only.{' '}
-            {ogData?.website ? (
+            {currentOG?.website ? (
               <>
                 Please contact them at{' '}
                 <Link 
-                  href={ogData.website}
+                  href={currentOG.website}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-500"
                 >
-                  {ogData.website.replace(/^https?:\/\//, '')}
+                  {currentOG.website.replace(/^https?:\/\//, '')}
                 </Link>
                 {' '}for more info.
               </>
@@ -598,14 +596,14 @@ const CreateAccountPage = () => {
           <div className="w-full mt-12" id="distribution">
             <GroupEnsurance 
               ogName={currentOG?.og_name?.startsWith('.') ? currentOG.og_name.slice(1) : currentOG?.og_name || ''} 
-              groupEnsuranceText={ogData?.group_ensurance}
+              groupEnsuranceText={currentOG?.group_ensurance}
             />
           </div>
 
           <div className="w-full">
             <AccountFeatures 
               ogName={currentOG?.og_name?.startsWith('.') ? currentOG.og_name.slice(1) : currentOG?.og_name || ''} 
-              tagline={ogData?.tagline}
+              tagline={currentOG?.tagline}
             />
           </div>
         </>

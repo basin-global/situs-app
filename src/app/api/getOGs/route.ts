@@ -7,7 +7,7 @@ export async function GET() {
   try {
     console.log('API: Fetching OGs from database...');
     const ogs = await getAllOGs();
-    console.log('API: Fetched OGs from database:', ogs);
+    console.log('API: Fetched OGs from database:', ogs.length);
     return NextResponse.json(ogs);
   } catch (error) {
     console.error('API: Error fetching OGs:', error);

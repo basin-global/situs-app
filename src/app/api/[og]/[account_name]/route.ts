@@ -25,6 +25,7 @@ export async function GET(
       account_name: account.account_name,
       tba_address: account.tba_address || null,
       token_id: account.token_id,
+      description: account.description || null,
       // Include other fields as needed
       owner_of: account.owner_of,
       created_at: account.created_at

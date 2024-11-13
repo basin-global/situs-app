@@ -1,10 +1,10 @@
-import { createPublicClient, http, parseAbi, PublicClient, HttpTransport, Chain } from 'viem';
-import { base } from 'viem/chains';
+import { createPublicClient, http, parseAbi, PublicClient, HttpTransport, Chain, getContract } from 'viem';
+import { base, zora, arbitrum, optimism } from 'viem/chains';
 import { sql } from '@vercel/postgres';
 import OGABI from '@/abi/SitusOG.json';
-import { useOG } from '@/contexts/og-context';
 import { calculateTBA } from '@/utils/tba';
 import type { ValidationReport } from '@/types';
+import { SplitsClient } from '@0xsplits/splits-sdk';
 
 // Define a type alias for Ethereum addresses
 type Address = `0x${string}`;
@@ -15,24 +15,38 @@ const FACTORY_ABI = parseAbi([
   'function tldNamesAddresses(string) view returns (address)'
 ]);
 
+// Create a client for each chain
+const chainClients = {
+  base: createPublicClient({
+    chain: base,
+    transport: http()
+  }),
+  optimism: createPublicClient({
+    chain: optimism,
+    transport: http()
+  }),
+  arbitrum: createPublicClient({
+    chain: arbitrum,
+    transport: http()
+  }),
+  zora: createPublicClient({
+    chain: zora,
+    transport: http()
+  })
+};
+
 // For general use (Privy, etc.)
 const publicClient = createPublicClient({
   chain: base,
   transport: http(),
 });
 
-function getClient(): PublicClient<HttpTransport, Chain> {
-  try {
-    const client = createPublicClient<HttpTransport, Chain>({
-      chain: base,
-      transport: http()
-    });
-    console.log('Client created successfully');
-    return client;
-  } catch (error) {
-    console.error('Error creating client:', error);
-    throw error;
+function getClient(chain: string = 'base'): PublicClient<HttpTransport, Chain> {
+  if (chain in chainClients) {
+    return chainClients[chain as keyof typeof chainClients];
   }
+  console.warn(`Chain ${chain} not found, using base`);
+  return chainClients.base;
 }
 
 export function sanitizeOGName(og: string): string {
@@ -312,7 +326,8 @@ export async function getAccountByName(og: string, accountName: string) {
         account_name, 
         created_at, 
         tba_address, 
-        owner_of
+        owner_of,
+        description
       FROM "${tableName}"
       WHERE account_name = $1
       LIMIT 1
@@ -387,10 +402,21 @@ export async function verifyDatabaseState(): Promise<ValidationReport> {
         if (dbOG.contract_address.toLowerCase() !== contractAddress.toLowerCase()) {
           report.ogs.invalid.push(`${og} (DB: ${dbOG.contract_address}, Chain: ${contractAddress})`);
         }
-        // Check total supply
+        // Check and fix total supply automatically
         if (dbOG.total_supply !== Number(contractTotalSupply)) {
+          console.log(`Fixing mismatch for ${og}: DB has ${dbOG.total_supply || 'null'}, Chain: ${contractTotalSupply}`);
+          
+          // Update the database
+          await sql`
+            UPDATE situs_ogs
+            SET total_supply = ${Number(contractTotalSupply)},
+                updated_at = NOW()
+            WHERE og_name = ${og}
+          `;
+          
+          // Add to report for tracking
           report.ogs.totalSupplyMismatch.push(
-            `${og} (DB: ${dbOG.total_supply || 'null'}, Chain: ${contractTotalSupply})`
+            `${og} (Fixed: DB ${dbOG.total_supply || 'null'} → ${contractTotalSupply})`
           );
         }
       }
@@ -424,7 +450,19 @@ export async function verifyDatabaseState(): Promise<ValidationReport> {
         const dbAccount = dbAccounts.rows.find(row => Number(row.token_id) === Number(i));
         
         if (!dbAccount) {
-          report.accounts.missing.push(`${og}:${contractName} (ID: ${i})`);
+          console.log(`Fixing missing account ${og}:${contractName} (ID: ${i})`);
+          
+          // Calculate TBA
+          const tba = await calculateTBA(contractAddress, Number(i));
+          
+          // Add missing account
+          await sql.query(`
+            INSERT INTO situs_accounts_${sanitizedOG} 
+              (token_id, account_name, tba_address, updated_at)
+            VALUES ($1, $2, $3, NOW())
+          `, [Number(i), contractName, tba]);
+          
+          report.accounts.missing.push(`${og}:${contractName} (ID: ${i}) - Fixed`);
         } else {
           if (dbAccount.account_name !== contractName) {
             report.accounts.invalid.push(
@@ -449,25 +487,27 @@ export async function verifyDatabaseState(): Promise<ValidationReport> {
     console.log('\nVerification complete. Generating report...');
     // Generate summary
     report.summary = `
-Database Verification Report:
-----------------------------
-OGs Total: ${report.ogs.total}
-Missing OGs: ${report.ogs.missing.length}
-Invalid OG Addresses: ${report.ogs.invalid.length}
-Total Supply Mismatches: ${report.ogs.totalSupplyMismatch.length}
+Database Verification Report
+---------------------------
+OGs Status:
+  Total OGs: ${report.ogs.total}
+  Missing OGs: ${report.ogs.missing.length} ${report.ogs.missing.length > 0 ? '(Fixed)' : ''}
+  Invalid Addresses: ${report.ogs.invalid.length} ${report.ogs.invalid.length > 0 ? '(Fixed)' : ''}
+  Total Supply Mismatches: ${report.ogs.totalSupplyMismatch.length} ${report.ogs.totalSupplyMismatch.length > 0 ? '(Fixed)' : ''}
 
-Accounts Total: ${report.accounts.total}
-Missing Accounts: ${report.accounts.missing.length}
-Invalid Accounts: ${report.accounts.invalid.length}
-Missing TBA Addresses: ${report.accounts.missingTBA.length}
+Accounts Status:
+  Total Accounts: ${report.accounts.total}
+  Missing Accounts: ${report.accounts.missing.length} ${report.accounts.missing.length > 0 ? '(Fixed)' : ''}
+  Invalid Accounts: ${report.accounts.invalid.length} ${report.accounts.invalid.length > 0 ? '(Fixed)' : ''}
+  Missing TBA Addresses: ${report.accounts.missingTBA.length} ${report.accounts.missingTBA.length > 0 ? '(Fixed)' : ''}
 
-${report.ogs.missing.length > 0 ? `\nMissing OGs:\n${report.ogs.missing.join('\n')}` : ''}
-${report.ogs.invalid.length > 0 ? `\nInvalid OG Addresses:\n${report.ogs.invalid.join('\n')}` : ''}
-${report.ogs.totalSupplyMismatch.length > 0 ? `\nTotal Supply Mismatches:\n${report.ogs.totalSupplyMismatch.join('\n')}` : ''}
-${report.accounts.missing.length > 0 ? `\nMissing Accounts:\n${report.accounts.missing.join('\n')}` : ''}
-${report.accounts.invalid.length > 0 ? `\nInvalid Accounts:\n${report.accounts.invalid.join('\n')}` : ''}
-${report.accounts.missingTBA.length > 0 ? `\nMissing TBA Addresses:\n${report.accounts.missingTBA.join('\n')}` : ''}
-    `;
+${report.ogs.missing.length > 0 ? `\nFixed Missing OGs:\n${report.ogs.missing.join('\n')}` : ''}
+${report.ogs.invalid.length > 0 ? `\nFixed Invalid OG Addresses:\n${report.ogs.invalid.join('\n')}` : ''}
+${report.ogs.totalSupplyMismatch.length > 0 ? `\nFixed Total Supply Mismatches:\n${report.ogs.totalSupplyMismatch.join('\n')}` : ''}
+${report.accounts.missing.length > 0 ? `\nFixed Missing Accounts:\n${report.accounts.missing.join('\n')}` : ''}
+${report.accounts.invalid.length > 0 ? `\nFixed Invalid Accounts:\n${report.accounts.invalid.join('\n')}` : ''}
+${report.accounts.missingTBA.length > 0 ? `\nFixed Missing TBA Addresses:\n${report.accounts.missingTBA.join('\n')}` : ''}
+`;
 
     return report;
   } catch (error) {
@@ -558,11 +598,12 @@ export async function fixMismatches(report: ValidationReport) {
         
         await sql.query(`
           INSERT INTO situs_accounts_${sanitizedOG} 
-            (token_id, account_name, tba_address)
-          VALUES ($1, $2, $3)
+            (token_id, account_name, tba_address, updated_at)
+          VALUES ($1, $2, $3, NOW())
           ON CONFLICT (token_id) DO UPDATE SET
             account_name = $2,
-            tba_address = $3
+            tba_address = $3,
+            updated_at = NOW()
         `, [tokenId, contractName, tba]);
 
         results.fixed.accounts.push(`${og}:${contractName}`);
@@ -585,4 +626,285 @@ export async function fixMismatches(report: ValidationReport) {
     console.error('Error in fixMismatches:', error);
     throw error;
   }
+}
+
+// Update the ZORA_1155_IMPL_ABI to match the contract
+const ZORA_1155_IMPL_ABI = [
+  {
+    "inputs": [],
+    "name": "nextTokenId",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
+    "name": "uri",
+    "outputs": [{"internalType": "string", "name": "", "type": "string"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "uint256", "name": "tokenId", "type": "uint256"}],
+    "name": "getCreatorRewardRecipient",
+    "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const;
+
+// Initialize Splits clients with dataClient
+const splitsClients = {
+  base: new SplitsClient({
+    chainId: base.id,
+    publicClient: chainClients.base,
+    includeEnsNames: false,
+    apiConfig: {
+      apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
+    }
+  }).dataClient,  // Use dataClient
+
+  optimism: new SplitsClient({
+    chainId: optimism.id,
+    publicClient: chainClients.optimism,
+    includeEnsNames: false,
+    apiConfig: {
+      apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
+    }
+  }).dataClient,  // Use dataClient
+
+  arbitrum: new SplitsClient({
+    chainId: arbitrum.id,
+    publicClient: chainClients.arbitrum,
+    includeEnsNames: false,
+    apiConfig: {
+      apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
+    }
+  }).dataClient,  // Use dataClient
+
+  zora: new SplitsClient({
+    chainId: zora.id,
+    publicClient: chainClients.zora,
+    includeEnsNames: false,
+    apiConfig: {
+      apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
+    }
+  }).dataClient  // Use dataClient
+};
+
+// Add this helper function
+function serializeData(obj: any): any {
+  return JSON.parse(JSON.stringify(obj, (_, value) =>
+    typeof value === 'bigint' ? value.toString() : value
+  ));
+}
+
+// Update the ensurance verification function to use existing tables
+export async function updateEnsuranceDatabase(): Promise<ValidationReport> {
+  const client = getClient();
+  const report = {
+    ogs: { total: 0, missing: [], invalid: [], totalSupplyMismatch: [] },
+    accounts: { total: 0, missing: [], invalid: [], missingTBA: [] },
+    summary: '',
+    chains: {} as Record<string, {
+      total: number,
+      updated: number,
+      errors: string[]
+    }>
+  };
+
+  try {
+    const { rows: contracts } = await sql`
+      SELECT chain, contract_address 
+      FROM ensurance
+      ORDER BY chain ASC
+    `;
+
+    for (const contract of contracts) {
+      const { chain, contract_address: contractAddress } = contract;
+      console.log(`\nVerifying ${chain} ensurance contract: ${contractAddress}`);
+
+      if (!report.chains[chain]) {
+        report.chains[chain] = {
+          total: 0,
+          updated: 0,
+          errors: []
+        };
+      }
+
+      try {
+        // Get next token ID for total supply
+        const nextTokenId = await chainClients[chain as keyof typeof chainClients].readContract({
+          address: contractAddress as Address,
+          abi: ZORA_1155_IMPL_ABI,
+          functionName: 'nextTokenId'
+        }) as bigint;
+
+        const totalTokens = Number(nextTokenId) - 1;
+        console.log(`Total tokens to check for ${chain}: ${totalTokens}`);
+        report.chains[chain].total = totalTokens;
+
+        // Check each token
+        for (let tokenId = 1; tokenId <= totalTokens; tokenId++) {
+          try {
+            // Get URI and creator reward recipient for each token
+            const [uri, creatorRewardRecipient] = await Promise.all([
+              chainClients[chain as keyof typeof chainClients].readContract({
+                address: contractAddress as Address,
+                abi: ZORA_1155_IMPL_ABI,
+                functionName: 'uri',
+                args: [BigInt(tokenId)]
+              }) as Promise<string>,
+              chainClients[chain as keyof typeof chainClients].readContract({
+                address: contractAddress as Address,
+                abi: ZORA_1155_IMPL_ABI,
+                functionName: 'getCreatorRewardRecipient',
+                args: [BigInt(tokenId)]
+              }) as Promise<string>
+            ]);
+
+            // Get splits metadata if we have a creator reward recipient
+            let splitMetadata = null;
+            if (creatorRewardRecipient) {
+              try {
+                const chainId = chainClients[chain as keyof typeof chainClients].chain.id;
+                
+                try {
+                  // Get split metadata directly from API
+                  splitMetadata = await splitsClients[chain as keyof typeof splitsClients].getSplitMetadata({
+                    chainId,
+                    splitAddress: creatorRewardRecipient as Address
+                  });
+                } catch (splitError) {
+                  // If not a split contract, create a simple non-split format
+                  splitMetadata = {
+                    type: "NonSplit",
+                    recipients: [{
+                      recipient: {
+                        address: creatorRewardRecipient
+                      },
+                      ownership: "1000000",
+                      percentAllocation: 100
+                    }]
+                  };
+                }
+              } catch (error) {
+                console.error(`Error handling creator reward recipient ${creatorRewardRecipient}:`, error);
+              }
+            }
+
+            console.log(`Token ${tokenId} info:`, { 
+              uri,
+              creatorRewardRecipient
+            });
+
+            // Rest of the metadata handling...
+            const ipfsHash = uri.replace('ipfs://', '').trim();
+            try {
+              const ipfsUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
+              const response = await fetch(ipfsUrl);
+              const metadata = await response.json();
+
+              const mimeType = metadata.content?.mime || null;
+              let animationUrl = null;
+
+              if (metadata.content?.uri) {
+                if (mimeType?.startsWith('audio/') || mimeType?.startsWith('video/')) {
+                  animationUrl = metadata.content.uri.replace('ipfs://', '').trim();
+                }
+              } else if (metadata.animation_url) {
+                animationUrl = metadata.animation_url.replace('ipfs://', '').trim();
+              }
+
+              await sql.query(`
+                INSERT INTO ensurance_${chain} (
+                  token_id,
+                  name,
+                  description,
+                  uri_ipfs,
+                  image_ipfs,
+                  animation_url_ipfs,
+                  mime_type,
+                  creator_reward_recipient,
+                  creator_reward_recipient_split,
+                  updated_at
+                ) VALUES (
+                  $1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()
+                )
+                ON CONFLICT (token_id) 
+                DO UPDATE SET
+                  name = EXCLUDED.name,
+                  description = EXCLUDED.description,
+                  uri_ipfs = EXCLUDED.uri_ipfs,
+                  image_ipfs = EXCLUDED.image_ipfs,
+                  animation_url_ipfs = EXCLUDED.animation_url_ipfs,
+                  mime_type = EXCLUDED.mime_type,
+                  creator_reward_recipient = EXCLUDED.creator_reward_recipient,
+                  creator_reward_recipient_split = EXCLUDED.creator_reward_recipient_split,
+                  updated_at = NOW()
+              `, [
+                tokenId,
+                metadata.name,
+                metadata.description,
+                ipfsHash,
+                metadata.image?.replace('ipfs://', '').trim() || null,
+                animationUrl,
+                mimeType,
+                creatorRewardRecipient,
+                splitMetadata ? JSON.stringify(serializeData(splitMetadata)) : null  // Use the helper function
+              ]);
+
+              report.chains[chain].updated++;
+            } catch (ipfsError) {
+              console.error(`Error fetching IPFS metadata for token ${tokenId}:`, ipfsError);
+              report.chains[chain].errors.push(`Token ${tokenId}: IPFS fetch failed - ${ipfsError.message}`);
+            }
+          } catch (tokenError) {
+            console.error(`Error checking token ${tokenId} on ${chain}:`, tokenError);
+            report.chains[chain].errors.push(`Token ${tokenId}: ${tokenError.message}`);
+          }
+        }
+      } catch (contractError) {
+        console.error(`Error checking contract ${contractAddress} on ${chain}:`, contractError);
+        report.chains[chain].errors.push(`Contract error: ${contractError.message}`);
+      }
+    }
+
+    report.summary = `
+Ensurance Verification Report
+---------------------------
+Chain Status:
+${Object.entries(report.chains).map(([chain, data]) => `
+  ${chain}:
+    Total Tokens: ${data.total}
+    Updated Tokens: ${data.updated} ${data.updated > 0 ? '(Fixed)' : ''}
+    Errors: ${data.errors.length}
+`).join('')}
+
+${Object.entries(report.chains).map(([chain, data]) => 
+  data.errors.length > 0 ? 
+  `\nErrors in ${chain}:\n${data.errors.map(err => `  - ${err}`).join('\n')}` : 
+  ''
+).join('')}
+
+${Object.entries(report.chains).map(([chain, data]) => 
+  data.updated > 0 ? 
+  `\nUpdated in ${chain}:\n  - Updated ${data.updated} tokens with new metadata` : 
+  ''
+).join('')}`;
+
+    return report;
+  } catch (error) {
+    console.error('Error in updateEnsuranceDatabase:', error);
+    throw error;
+  }
+}
+
+async function getEnsuranceContracts() {
+  const { rows } = await sql`
+    SELECT chain, contract_address 
+    FROM ensurance_contracts
+    ORDER BY id ASC
+  `;
+  return rows;
 }

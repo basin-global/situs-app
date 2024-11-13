@@ -10,6 +10,7 @@ import { PrivyProviderWrapper } from '@/providers/privy-provider'
 import { spaceGrotesk, spaceMono } from './fonts'
 import Footer from '@/components/footer'
 import AnnouncementBanner from '@/components/AnnouncementBanner'
+import { SplitsWrapper } from '@/modules/splits'
 
 export const metadata: Metadata = {
   title: 'Situs | place-based resilience',
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${spaceGrotesk.variable} ${spaceMono.variable}`}>
       <body className="font-sans bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark min-h-screen flex flex-col">
         <PrivyProviderWrapper>
+          <SplitsWrapper>
             <OGProvider>
               {process.env.NEXT_PUBLIC_IS_STAGING === 'true' && <AnnouncementBanner />}
               <Header />
@@ -30,6 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </main>
               <Footer />
             </OGProvider>
+          </SplitsWrapper>
         </PrivyProviderWrapper>
       </body>
     </html>

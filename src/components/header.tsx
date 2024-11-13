@@ -29,7 +29,9 @@ export default function Header() {
   const isAdminPage = pathname.startsWith('/manage')
   const isMemberPage = pathname.startsWith('/member')
   const isAssetsPage = pathname.startsWith('/assets')
-  const isOGPage = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage
+  const isToolsPage = pathname.startsWith('/tools')
+
+  const isOGPage = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage && !isToolsPage
 
   const logoSrc = isOGPage && currentOG
     ? `/ogs/orbs/${currentOG.og_name.replace(/^\./, '')}-orb.png`
@@ -39,7 +41,7 @@ export default function Header() {
     ? `/${currentOG.og_name.replace(/^\./, '')}`
     : "/"
 
-  const shouldShowOGChooserAndNavigation = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage
+  const shouldShowOGChooserAndNavigation = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage && !isToolsPage
 
   return (
     <header className={`bg-gradient-to-r from-secondary to-primary text-white shadow-lg relative z-[40] py-3`}>

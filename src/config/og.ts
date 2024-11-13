@@ -28,8 +28,11 @@ export async function getOGs(): Promise<OG[]> {
 }
 
 function isHardRefresh(): boolean {
-    // Check if it's a hard refresh (Ctrl+F5 or Cmd+Shift+R)
-    return window.performance && window.performance.navigation.type === 1;
+    if (typeof window === 'undefined') return false;
+    
+    // Use the modern Performance API
+    const navEntry = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
+    return navEntry.type === 'reload';
 }
 
 export function clearOGsCache() {

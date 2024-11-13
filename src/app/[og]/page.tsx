@@ -4,14 +4,12 @@ import { ReactNode, useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useOG } from '@/contexts/og-context';
-import { useOGData } from '@/hooks/useOGData';
 import RecentAccounts from '@/components/RecentAccounts';
 import AssetCard from '@/modules/assets/AssetCard';
 import EnsurancePreview from '@/components/EnsurancePreview';
 
 export default function OgPage({ params }: { params: { og: string } }): ReactNode {
   const { currentOG } = useOG();
-  const { ogData, isLoading, error } = useOGData();
   const [bannerPath, setBannerPath] = useState<string>('/ogs/banners/basin-banner.jpg');
 
   useEffect(() => {
@@ -37,19 +35,12 @@ export default function OgPage({ params }: { params: { og: string } }): ReactNod
 
   const situs = currentOG.og_name?.replace(/^\./, '').toLowerCase() || '';
 
-  console.log('OG Page Render:', {
-    currentOG,
-    ogData,
-    params,
-    situs
-  });
-
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 pt-6">
       <div className="relative w-full h-0 pb-[20%] mb-6 rounded-xl overflow-hidden">
         <Image
           src={bannerPath}
-          alt={`${ogData?.name_front || currentOG.og_name} banner`}
+          alt={`${currentOG.name_front || currentOG.og_name} banner`}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           style={{ objectFit: 'cover' }}
@@ -58,10 +49,10 @@ export default function OgPage({ params }: { params: { og: string } }): ReactNod
         <div className="absolute inset-0 flex items-center bg-gradient-to-r from-black/70 via-black/40 to-transparent">
           <div className="p-4 md:p-8 max-w-2xl">
             <h1 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold mb-2 md:mb-3 text-white leading-tight break-words">
-              {ogData?.name_front || currentOG.og_name}
+              {currentOG.name_front || currentOG.og_name}
             </h1>
             <p className="text-base md:text-lg lg:text-xl text-white/90 font-medium tracking-wide break-words">
-              {ogData?.tagline || 'Reducing Risk, Increasing Resilience'}
+              {currentOG.tagline || 'Reducing Risk, Increasing Resilience'}
             </p>
           </div>
         </div>
@@ -71,7 +62,7 @@ export default function OgPage({ params }: { params: { og: string } }): ReactNod
         <div className="lg:col-span-3 flex flex-col h-full space-y-8">
           <div className="bg-muted/50 dark:bg-muted-dark/50 rounded-xl p-6 backdrop-blur-sm flex-grow">
             <p className="text-lg leading-relaxed text-foreground/90 dark:text-foreground-dark/90">
-              {ogData?.description || 'Details coming soon...'}
+              {currentOG.description || 'Details coming soon...'}
             </p>
           </div>
           
@@ -105,13 +96,13 @@ export default function OgPage({ params }: { params: { og: string } }): ReactNod
             {/* Stats & Links Section */}
             <div className="p-6">
               {/* Members Count */}
-              {ogData?.total_supply && ogData.total_supply > 0 && (
+              {currentOG.total_supply && currentOG.total_supply > 0 && (
                 <div className="mb-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-medium">Members</span>
                       <span className="bg-primary/10 text-primary px-2 py-0.5 rounded text-sm font-medium">
-                        {ogData.total_supply}
+                        {currentOG.total_supply}
                       </span>
                     </div>
                     <Link 
@@ -125,12 +116,12 @@ export default function OgPage({ params }: { params: { og: string } }): ReactNod
               )}
 
               {/* Quick Links - Only render the div if at least one link exists */}
-              {(ogData?.website || ogData?.chat || ogData?.email) && (
+              {(currentOG.website || currentOG.chat || currentOG.email) && (
                 <div className="space-y-3">
                   {/* Website - Only show if exists */}
-                  {ogData?.website && ogData.website.trim() && (
+                  {currentOG.website && currentOG.website.trim() && (
                     <Link 
-                      href={ogData.website}
+                      href={currentOG.website}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors group"
@@ -139,16 +130,16 @@ export default function OgPage({ params }: { params: { og: string } }): ReactNod
                         <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                         </svg>
-                        <span className="font-medium">{ogData.website.replace(/^https?:\/\//, '')}</span>
+                        <span className="font-medium">{currentOG.website.replace(/^https?:\/\//, '')}</span>
                       </div>
                       <span className="text-primary group-hover:translate-x-1 transition-transform">→</span>
                     </Link>
                   )}
 
                   {/* Chat - Only show if exists */}
-                  {ogData?.chat && ogData.chat.trim() && (
+                  {currentOG.chat && currentOG.chat.trim() && (
                     <Link 
-                      href={ogData.chat}
+                      href={currentOG.chat}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors group"
@@ -164,9 +155,9 @@ export default function OgPage({ params }: { params: { og: string } }): ReactNod
                   )}
 
                   {/* Email - Only show if exists */}
-                  {ogData?.email && ogData.email.trim() && (
+                  {currentOG.email && currentOG.email.trim() && (
                     <Link 
-                      href={`mailto:${ogData.email}`}
+                      href={`mailto:${currentOG.email}`}
                       className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors group"
                     >
                       <div className="flex items-center gap-3">

@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 
 interface OGContextType {
   currentOG: OG | null;
-  setCurrentOG: (og: OG) => void;  // Changed this type
+  setCurrentOG: (og: OG) => void;
   OGs: OG[];
   isLoading: boolean;
   getOGByName: (name: string) => OG | undefined;
@@ -40,7 +40,7 @@ export function OGProvider({ children }: { children: React.ReactNode }) {
     };
 
     fetchOGs();
-  }, []); // Empty dependency array to run only once on mount
+  }, []);
 
   useEffect(() => {
     const ogNameFromPath = pathname.split('/')[1];
@@ -50,10 +50,7 @@ export function OGProvider({ children }: { children: React.ReactNode }) {
         setCurrentOG(ogToSet);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname, OGs]);
-
-  // Removed setCurrentOGWithDot function
 
   const getOGByName = useCallback((name: string) => {
     return OGs.find(og => og.og_name === name || og.og_name === `.${name}`);
@@ -76,9 +73,9 @@ export function OGProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const contextValue = useMemo(() => ({
-    currentOG, 
-    setCurrentOG,  // Now using setCurrentOG directly
-    OGs, 
+    currentOG,
+    setCurrentOG,
+    OGs,
     isLoading,
     getOGByName,
     accounts,
