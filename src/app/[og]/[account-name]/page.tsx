@@ -179,80 +179,82 @@ export default function AccountPage({ params }: { params: { og: string; 'account
   console.log('Current account state:', account);
 
   return (
-    <div className="container mx-auto px-0 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark min-h-screen">
-      <div className="w-full lg:max-w-6xl lg:mx-auto">
-        <div className="mb-2 flex justify-center">
-          <SubNavigation type="accounts" />
-        </div>
+    <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-0 bg-background dark:bg-background-dark text-foreground dark:text-foreground-dark min-h-screen">
+        <div className="w-full lg:max-w-6xl lg:mx-auto">
+          <div className="mb-4 flex justify-center">
+            <SubNavigation type="accounts" />
+          </div>
 
-        <div className="bg-white dark:bg-gray-800 rounded-none lg:rounded-lg shadow-md p-0 md:p-4 w-full">
-          <div className="relative group px-4 md:px-0 py-2">
-            <div className="flex-1">
-              {account.tba_address ? (
-                <p 
-                  className="text-sm font-space-mono cursor-pointer text-center mb-1 opacity-0 group-hover:opacity-70 transition-opacity duration-300 delay-300 text-gray-600 dark:text-gray-400"
-                  onClick={() => copyToClipboard(account.tba_address!)}
-                >
-                  {account.tba_address}
-                </p>
-              ) : (
-                <p className="text-sm font-space-mono text-center mb-1 text-gray-600 dark:text-gray-400">
-                  TBA address not available
-                </p>
-              )}
-              <div className="flex items-center justify-center">
-                <div className="flex items-center gap-4">
-                  <div className="h-24 w-24 flex-shrink-0">
-                    <AccountImage tokenId={account.token_id} />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <div className="flex items-center gap-2">
-                      <h1 
-                        className={`text-3xl md:text-5xl font-bold cursor-pointer ${
-                          isOwner ? 'bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600' : ''
-                        }`}
-                        onClick={() => account.tba_address && copyToClipboard(account.tba_address)}
-                      >
-                        {`${decodeURIComponent(account_name)}${currentOG?.og_name}`}
-                      </h1>
-                      {isOwner && (
-                        <div 
-                          className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-500 flex-shrink-0"
-                          title="You own this account"
-                        />
+          <div className="bg-white dark:bg-gray-800 rounded-none lg:rounded-lg shadow-md p-0 md:p-4 w-full">
+            <div className="relative group px-4 md:px-0 py-2">
+              <div className="flex-1">
+                {account.tba_address ? (
+                  <p 
+                    className="text-sm font-space-mono cursor-pointer text-center mb-1 opacity-0 group-hover:opacity-70 transition-opacity duration-300 delay-300 text-gray-600 dark:text-gray-400"
+                    onClick={() => copyToClipboard(account.tba_address!)}
+                  >
+                    {account.tba_address}
+                  </p>
+                ) : (
+                  <p className="text-sm font-space-mono text-center mb-1 text-gray-600 dark:text-gray-400">
+                    TBA address not available
+                  </p>
+                )}
+                <div className="flex items-center justify-center">
+                  <div className="flex items-center gap-4">
+                    <div className="h-24 w-24 flex-shrink-0">
+                      <AccountImage tokenId={account.token_id} />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <h1 
+                          className={`text-3xl md:text-5xl font-bold cursor-pointer ${
+                            isOwner ? 'bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600' : ''
+                          }`}
+                          onClick={() => account.tba_address && copyToClipboard(account.tba_address)}
+                        >
+                          {`${decodeURIComponent(account_name)}${currentOG?.og_name}`}
+                        </h1>
+                        {isOwner && (
+                          <div 
+                            className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-500 flex-shrink-0"
+                            title="You own this account"
+                          />
+                        )}
+                      </div>
+                      {account.description && (
+                        <p className="text-sm text-gray-600 dark:text-gray-400 max-w-xl">
+                          {account.description}
+                        </p>
                       )}
                     </div>
-                    {account.description && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 max-w-xl">
-                        {account.description}
-                      </p>
-                    )}
                   </div>
                 </div>
+                {ensName && (
+                  <p className="text-sm text-center opacity-0 group-hover:opacity-70 transition-opacity duration-300 delay-300 text-gray-600 dark:text-gray-400">
+                    {ensName}
+                  </p>
+                )}
               </div>
-              {ensName && (
-                <p className="text-sm text-center opacity-0 group-hover:opacity-70 transition-opacity duration-300 delay-300 text-gray-600 dark:text-gray-400">
-                  {ensName}
-                </p>
+            </div>
+            
+            <div className="w-full">
+              {account?.tba_address && (
+                <TabbedModules 
+                  address={account.tba_address} 
+                  isTokenbound={true}
+                  isOwner={isOwner}
+                  initialModule={initialModule}
+                  initialChain={initialChain}
+                />
               )}
             </div>
           </div>
-          
-          <div className="w-full">
-            {account?.tba_address && (
-              <TabbedModules 
-                address={account.tba_address} 
-                isTokenbound={true}
-                isOwner={isOwner}
-                initialModule={initialModule}
-                initialChain={initialChain}
-              />
-            )}
-          </div>
-        </div>
 
-        <div className={`mt-4 transition-opacity duration-1000 ease-in-out ${showOnchainData ? 'opacity-100' : 'opacity-0'} px-4 lg:px-0`}>
-          {showOnchainData && <AccountContractInfo token_id={parseInt(account.token_id, 10)} />}
+          <div className={`mt-4 transition-opacity duration-1000 ease-in-out ${showOnchainData ? 'opacity-100' : 'opacity-0'} px-4 lg:px-0`}>
+            {showOnchainData && <AccountContractInfo token_id={parseInt(account.token_id, 10)} />}
+          </div>
         </div>
       </div>
     </div>

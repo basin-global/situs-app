@@ -5,7 +5,7 @@ import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import './globals.css'
 import Header from '@/components/header'
-import { OGProvider } from '@/contexts/og-context'  // Changed from SitusProvider to OGProvider
+import { OGProvider } from '@/contexts/og-context'
 import { PrivyProviderWrapper } from '@/providers/privy-provider'
 import { spaceGrotesk, spaceMono } from './fonts'
 import Footer from '@/components/footer'

@@ -19,12 +19,9 @@ export interface OG {
   };
   
   export interface OgAccount {
-    account_name: string;
-    token_id: string;
     tba_address: string;
-    og_name: string;
-    description?: string;
-    id?: string;
+    account_name: string;  // This will be used as name
+    // Add other fields as needed
   }
 
   export interface ValidationReport {

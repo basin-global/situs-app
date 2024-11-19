@@ -45,23 +45,23 @@ export default function CustomAudioPlayer({ src }: CustomAudioPlayerProps) {
   };
 
   return (
-    <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-lg p-4 flex flex-col gap-2">
+    <div className="w-full bg-black/50 backdrop-blur-sm rounded-xl p-4 flex flex-col gap-2">
       <audio ref={audioRef} src={src} className="hidden" />
       
       <div className="flex items-center gap-4">
         <button
           onClick={togglePlay}
-          className="w-12 h-12 flex items-center justify-center rounded-full bg-blue-500 hover:bg-blue-600 text-white focus:outline-none"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600 text-white focus:outline-none transition-all duration-200"
         >
           {isPlaying ? '❚❚' : '▶'}
         </button>
         
         <div 
-          className="flex-grow h-2 bg-gray-200 dark:bg-gray-700 rounded-full cursor-pointer"
+          className="flex-grow h-2 bg-gray-700/50 rounded-full cursor-pointer overflow-hidden"
           onClick={handleProgressClick}
         >
           <div
-            className="h-full bg-blue-500 rounded-full"
+            className="h-full bg-gradient-to-r from-green-400 to-blue-500 rounded-full transition-all duration-200"
             style={{ width: `${progress}%` }}
           ></div>
         </div>

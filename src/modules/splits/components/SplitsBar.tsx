@@ -13,10 +13,11 @@ interface Recipient {
 
 interface SplitsBarProps {
   recipients: Recipient[];
+  isFlowView?: boolean;
 }
 
-export function SplitsBar({ recipients }: SplitsBarProps) {
-  const TOOLTIP_THRESHOLD = 20; // Threshold for when to switch to simplified tooltip
+export function SplitsBar({ recipients, isFlowView = false }: SplitsBarProps) {
+  const TOOLTIP_THRESHOLD = 20;
 
   const data = useMemo(() => {
     return [{
@@ -38,8 +39,14 @@ export function SplitsBar({ recipients }: SplitsBarProps) {
   }, [recipients]);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="w-full h-12 rounded-full overflow-hidden">
+    <div className={`flex flex-col gap-2 ${!isFlowView && 'cursor-pointer hover:opacity-90 transition-opacity'}`}>
+      {!isFlowView && (
+        <h3 className="text-sm font-medium text-gray-400 flex items-center gap-2">
+          {recipients.length} {recipients.length === 1 ? 'Beneficiary' : 'Beneficiaries'}
+          <span className="text-xs text-gray-500">(click to view)</span>
+        </h3>
+      )}
+      <div className="w-full h-12 rounded-full overflow-hidden bg-transparent">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             layout="vertical"
@@ -81,9 +88,6 @@ export function SplitsBar({ recipients }: SplitsBarProps) {
           </BarChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-sm text-gray-500 text-center">
-        {recipients.length} {recipients.length === 1 ? 'Beneficiary' : 'Beneficiaries'}
-      </p>
     </div>
   );
 } 

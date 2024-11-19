@@ -13,6 +13,11 @@ export default function Footer() {
   const pathname = usePathname()
   const pathParts = pathname.split('/')
   
+  // Hide footer on metadata pages
+  if (pathname.startsWith('/metadata')) {
+    return null
+  }
+  
   // Only consider it an OG page if the first part matches an OG name
   const isOGPage = currentOG?.og_name.replace(/^\./, '') === pathParts[1]
 

@@ -56,6 +56,15 @@ interface AssetsModuleProps {
   setSearchQuery: (query: string) => void;
 }
 
+// Add new fetch function alongside existing ones
+const fetchEnsuranceFromDB = async (chain: string) => {
+  const response = await fetch(`/api/getEnsurance?chain=${chain}`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch ensurance');
+  }
+  return response.json();
+};
+
 export default function AssetsModule({ 
   address,
   selectedChain,
@@ -139,46 +148,25 @@ export default function AssetsModule({
         console.log('Fetching single chain:', selectedChain);
         
         if (isEnsuranceTab) {
-          // First get all ensurance NFTs for this chain
-          const nfts = await fetchNFTsByContracts(
-            address, 
-            { [selectedChain]: ensuranceContracts[selectedChain as keyof typeof ensuranceContracts] }
-          );
-          
-          console.log('Ensurance NFTs:', {
-            chain: selectedChain,
-            count: nfts.length
-          });
-
-          // Then get ownership data
-          const ownedNFTsResponse = await axios.get(`/api/simplehash/nft`, {
-            params: { 
-              address,
-              chain: selectedChain,
-              fetchAll: true 
-            }
-          });
-
-          console.log('Ownership data:', {
-            totalOwned: ownedNFTsResponse.data.nfts?.length || 0
-          });
-
-          // Add ownership data to NFTs
-          const nftsWithOwnership = nfts.map(nft => ({
-            ...nft,
-            queried_wallet_balances: ownedNFTsResponse.data.nfts?.find((owned: any) => 
-              owned.contract_address.toLowerCase() === nft.contract_address.toLowerCase() &&
-              owned.token_id === nft.token_id &&
-              owned.chain === nft.chain
-            )?.queried_wallet_balances || []
-          }));
-
-          console.log('Final NFTs with ownership:', {
-            total: nftsWithOwnership.length,
-            withBalances: nftsWithOwnership.filter(nft => nft.queried_wallet_balances.length > 0).length
-          });
-
-          setAssets(nftsWithOwnership);
+          // For 'mine' page - use SimpleHash to get owned assets
+          if (address && window.location.pathname.includes('/mine')) {
+            const response = await axios.get(`/api/simplehash/nft`, {
+              params: { 
+                address,
+                chain: selectedChain,
+                fetchAll: true 
+              }
+            });
+            // Filter for only ensurance tokens
+            const ensuranceNFTs = response.data.nfts?.filter((nft: Asset) => 
+              isEnsuranceToken(nft.chain, nft.contract_address)
+            ) || [];
+            setAssets(ensuranceNFTs);
+          } else {
+            // For 'all' page - use DB route
+            const assets = await fetchEnsuranceFromDB(selectedChain);
+            setAssets(assets);
+          }
         } else {
           // Regular assets tab fetch
           const response = await axios.get(`/api/simplehash/nft?address=${address}&chain=${selectedChain}`);
@@ -241,7 +229,7 @@ export default function AssetsModule({
       return (
         asset.name?.toLowerCase().includes(searchLower) ||
         asset.collection?.name?.toLowerCase().includes(searchLower) ||
-        asset.token_id.toLowerCase().includes(searchLower)
+        asset.token_id?.toString().includes(searchLower)
       );
     });
   }, [displayedAssets, searchQuery]);

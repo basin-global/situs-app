@@ -63,7 +63,10 @@ export function FlowNode({ data }: FlowNodeProps) {
       {/* Show SplitsBar only for splits */}
       {data.isSplit && data.recipients && (
         <div className="mb-2">
-          <SplitsBar recipients={data.recipients} />
+          <SplitsBar 
+            recipients={data.recipients} 
+            isFlowView={true}
+          />
         </div>
       )}
 

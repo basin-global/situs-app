@@ -21,7 +21,7 @@ const flowStyles = {
   height: '80vh',
 };
 
-const defaultViewport = { x: 0, y: 0, zoom: 1.5 };
+const defaultViewport = { x: 0, y: 0, zoom: 0.75 };
 const nodeTypes = { flowNode: FlowNode };
 const MAX_DEPTH = 10;
 
@@ -123,6 +123,11 @@ export function FlowViewer({ address, chainId }: FlowViewerProps) {
         defaultViewport={defaultViewport}
         style={flowStyles}
         fitView
+        fitViewOptions={{ 
+          padding: 0.5,
+          minZoom: 0.5,
+          maxZoom: 1.5
+        }}
         nodeTypes={nodeTypes}
       >
         <Background className="bg-gray-900" />

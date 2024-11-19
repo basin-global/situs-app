@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 
 interface SubNavigationProps {
-  type?: 'accounts' | 'ensurance';
+  type?: 'accounts' | 'ensurance' | 'currency';
 }
 
 export function SubNavigation({ type = 'accounts' }: SubNavigationProps) {
@@ -22,10 +22,18 @@ export function SubNavigation({ type = 'accounts' }: SubNavigationProps) {
       ]
     }
 
+    if (type === 'ensurance') {
+      return [
+        { href: `/${og}/ensurance/all`, label: 'ALL' },
+        { href: `/${og}/ensurance/create`, label: 'CREATE' },
+        { href: `/${og}/ensurance/mine`, label: 'MINE' }
+      ]
+    }
+
     return [
-      { href: `/${og}/ensurance/all`, label: 'ALL' },
-      { href: `/${og}/ensurance/create`, label: 'CREATE' },
-      { href: `/${og}/ensurance/mine`, label: 'MINE' }
+      { href: `/${og}/currency/all`, label: 'ALL' },
+      { href: `/${og}/currency/swap`, label: 'SWAP' },
+      { href: `/${og}/currency/mine`, label: 'MINE' }
     ]
   }
 

@@ -16,6 +16,23 @@ import { EnsureModal } from '@/modules/ensure/ensure-modal';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { isEnsuranceToken } from '@/modules/ensurance/config'
 import { Asset, EnsureOperation } from '@/types';
+import { SplitsBar } from '@/modules/splits/components/SplitsBar';
+
+// Add type for ensurance data
+type EnsuranceData = {
+  creator_reward_recipient_split: {
+    recipients: Array<{
+      percentAllocation: number;
+      recipient: {
+        address: string;
+        ens?: string;
+      }
+    }>
+  }
+};
+
+// Add constant for description character limit
+const DESCRIPTION_CHAR_LIMIT = 300;
 
 export default function AssetDetailPage({ params }: { params: { chain: string; contract: string; tokenId: string } }) {
   const router = useRouter();
@@ -30,6 +47,8 @@ export default function AssetDetailPage({ params }: { params: { chain: string; c
   const [selectedOperation, setSelectedOperation] = useState<EnsureOperation | null>(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [address, setAddress] = useState<string>('');
+  const [ensuranceData, setEnsuranceData] = useState<EnsuranceData | null>(null);
+  const [showFullDescription, setShowFullDescription] = useState(false);
 
   const isEnsurance = isEnsuranceToken(params.chain, params.contract);
   const quantity = assetDetails?.owners?.[0]?.quantity || 0;
@@ -41,13 +60,26 @@ export default function AssetDetailPage({ params }: { params: { chain: string; c
   const fetchAssetDetails = useMemo(() => async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/simplehash/nft?chain=${params.chain}&contractAddress=${params.contract}&tokenId=${params.tokenId}`);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      // If we're on the ensurance route, use our DB
+      if (window.location.pathname.includes('/ensurance/')) {
+        const response = await fetch(`/api/getEnsurance?chain=${params.chain}&tokenId=${params.tokenId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Ensurance details from DB:', data);
+        setAssetDetails(data);
+        setEnsuranceData(data); // We already have the splits data
+      } else {
+        // For non-ensurance assets, use SimpleHash
+        const response = await fetch(`/api/simplehash/nft?chain=${params.chain}&contractAddress=${params.contract}&tokenId=${params.tokenId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('Asset details from SimpleHash:', data);
+        setAssetDetails(data);
       }
-      const data = await response.json();
-      console.log('Asset details:', data);
-      setAssetDetails(data);
     } catch (error) {
       console.error('Error fetching asset details:', error);
       setError('Failed to fetch asset details. Please try again later.');
@@ -108,8 +140,33 @@ export default function AssetDetailPage({ params }: { params: { chain: string; c
     }
   }, [user?.wallet?.address]);
 
+  useEffect(() => {
+    const fetchEnsuranceData = async () => {
+      if (isEnsurance && !window.location.pathname.includes('/ensurance/')) {
+        return; // Don't fetch if we haven't redirected yet
+      }
+
+      if (isEnsurance) {
+        try {
+          const response = await fetch(`/api/getEnsurance?chain=${params.chain}&tokenId=${params.tokenId}`);
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Ensurance data:', data);
+            setEnsuranceData(data);
+          }
+        } catch (error) {
+          console.error('Error fetching ensurance data:', error);
+        }
+      }
+    };
+
+    fetchEnsuranceData();
+  }, [isEnsurance, params.chain, params.tokenId]);
+
   const toggleFullscreen = () => {
     setIsFullscreen(!isFullscreen);
+    // Toggle body overflow to prevent scrolling in fullscreen
+    document.body.style.overflow = !isFullscreen ? 'hidden' : 'auto';
   };
 
   const handleOperation = useCallback((operation: string) => {
@@ -160,166 +217,228 @@ export default function AssetDetailPage({ params }: { params: { chain: string; c
   }
 
   return (
-    <div className="flex justify-center min-h-screen bg-background dark:bg-background-dark">
-      <div className={`${isFullscreen ? 'fixed inset-0 z-50 bg-black' : 'container max-w-4xl mx-auto px-4 py-8'}`}>
-        {isSpam && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <strong className="font-bold">Warning!</strong>
-            <span className="block sm:inline"> This contract has been marked as spam.</span>
-          </div>
-        )}
-        
-        <div className={`${isFullscreen ? 'h-full' : 'bg-white dark:bg-gray-800 rounded-lg shadow-md'}`}>
-          {!isFullscreen && (
-            <div className="flex flex-col items-center p-6 border-b border-gray-700">
-              <div className="w-full flex items-center mb-4">
-                <button
-                  onClick={() => router.back()}
-                  className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                  <span>Back</span>
-                </button>
+    <div className="min-h-screen bg-background dark:bg-background-dark">
+      {isFullscreen ? (
+        // Fullscreen view
+        <div className="fixed inset-0 z-50 bg-black">
+          <div className="relative w-full h-full flex items-center justify-center">
+            {assetDetails?.video_url ? (
+              <video
+                className="max-h-screen max-w-screen object-contain"
+                controls
+                autoPlay
+                loop
+                muted
+                src={assetDetails.video_url}
+              />
+            ) : (
+              <div className="relative w-full h-full">
+                <Image
+                  src={assetDetails?.image_url || ''}
+                  alt={assetDetails?.name || 'Asset Image'}
+                  fill
+                  className="object-contain"
+                  priority
+                />
               </div>
-              <div className="flex items-center gap-4">
-                <h1 className="text-3xl font-bold text-gray-200">
-                  {assetDetails?.name || 'Unnamed Asset'}
-                </h1>
-                {authenticated && isOwner && isEnsurance && (
-                  <div className="px-2 py-1 rounded text-xs font-bold text-yellow-300 border border-yellow-300/50">
-                    ENSURED
-                  </div>
-                )}
-                {ensureMenuComponent}
-              </div>
-              {assetDetails?.collection?.name && (
-                <p className="text-gray-400 mt-1">{assetDetails.collection.name}</p>
-              )}
-            </div>
-          )}
-
-          <div className="relative">
+            )}
             <button
               onClick={toggleFullscreen}
-              className="absolute top-4 right-4 z-10 p-2 bg-black/50 rounded-full text-white"
+              className="absolute top-4 right-4 z-30 p-2 bg-black/50 rounded-full text-white"
             >
-              {isFullscreen ? <Minimize2 size={24} /> : <Maximize2 size={24} />}
+              <Minimize2 size={24} />
             </button>
+          </div>
+        </div>
+      ) : (
+        // Regular view
+        <div className="container max-w-5xl mx-auto px-4 py-8">
+          {/* Back button */}
+          <div className="mb-6">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 text-gray-400 hover:text-gray-200 transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>Back</span>
+            </button>
+          </div>
 
-            {isOwner && quantity > 0 && (
-              <div className="absolute top-4 left-4 z-10">
-                <div className="bg-gray-800 px-2 py-1 rounded text-xs font-bold text-white">
-                  Owned: {quantity}
-                </div>
-              </div>
-            )}
-
-            <div className="p-6 flex flex-col items-center">
-              {assetDetails?.video_url ? (
-                <div className="inline-block">
-                  <video
-                    className={`${isFullscreen ? 'h-screen' : 'h-[60vh]'} object-contain rounded-lg`}
-                    controls
-                    autoPlay
-                    loop
-                    muted
-                    src={assetDetails.video_url}
-                  />
-                </div>
-              ) : (
-                <div className={`relative ${isFullscreen ? 'h-screen w-screen' : 'h-[60vh] w-full'} flex flex-col items-center`}>
-                  <div className="relative w-full h-full">
-                    <Image
-                      src={assetDetails?.image_url || ''}
-                      alt={assetDetails?.name || 'Asset Image'}
-                      fill
-                      className="rounded-lg object-contain"
-                      priority
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
-                    />
-                  </div>
-                  {assetDetails?.audio_url && (
-                    <div className="w-full max-w-md mt-4">
-                      <CustomAudioPlayer src={assetDetails.audio_url} />
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Action Buttons - Only ENSURE for ensurance assets */}
-              {!isFullscreen && isEnsurance && (
-                <div className="flex justify-center mt-6">
-                  <Button 
-                    onClick={() => handleOperation('ensure')}
-                    className="flex items-center gap-2 bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600"
-                  >
-                    <Plus className="h-6 w-6" />
-                    ENSURE
-                  </Button>
-                </div>
-              )}
+          {isSpam && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+              <strong className="font-bold">Warning!</strong>
+              <span className="block sm:inline"> This contract has been marked as spam.</span>
             </div>
-
-            {!isFullscreen && (
-              <>
-                {assetDetails?.description && (
-                  <div className="px-6 py-4 border-t border-gray-700">
-                    <div className="prose dark:prose-invert max-w-none text-gray-300">
-                      <ReactMarkdown>{assetDetails.description}</ReactMarkdown>
+          )}
+          
+          {/* Two Column Layout */}
+          <div className="flex flex-col lg:flex-row gap-6 mx-auto">
+            {/* Left Column - Media */}
+            <div className="lg:w-[58%]">
+              <div className="relative w-full bg-background dark:bg-background-dark rounded-2xl">
+                {assetDetails?.video_url ? (
+                  <div className="relative w-full">
+                    <div className="group">
+                      <video
+                        className="w-full object-contain rounded-2xl"
+                        controls
+                        autoPlay
+                        loop
+                        muted
+                        src={assetDetails.video_url}
+                      />
+                      <button
+                        onClick={toggleFullscreen}
+                        className="absolute top-4 right-4 z-30 p-2 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Maximize2 size={24} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative w-full">
+                    <div className="group">
+                      <div className="relative w-full">
+                        <Image
+                          src={assetDetails?.image_url || ''}
+                          alt={assetDetails?.name || 'Asset Image'}
+                          width={1200}
+                          height={675}
+                          className="w-full h-auto rounded-2xl object-contain"
+                          priority
+                        />
+                        {assetDetails?.mime_type?.startsWith('audio/') && assetDetails?.audio_url && (
+                          <div className="absolute bottom-4 left-4 right-4">
+                            <CustomAudioPlayer src={assetDetails.audio_url} />
+                          </div>
+                        )}
+                        <button
+                          onClick={toggleFullscreen}
+                          className="absolute top-4 right-4 z-30 p-2 bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Maximize2 size={24} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
 
-                <div className="px-6 py-4 border-t border-gray-700">
-                  <h2 className="text-xl font-semibold mb-3 text-gray-200">Data</h2>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div>
-                        <p className="text-gray-400 text-sm">Collection</p>
-                        <p className="text-gray-200 text-sm font-mono">
-                          {truncateAddress(assetDetails.contract_address || '')}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-gray-400 text-sm">ID</p>
-                        <p className="text-gray-200 text-sm font-mono">{assetDetails.token_id}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-4">
-                      <a
-                        href={`https://rarible.com/token/base/${params.contract}:${params.tokenId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:opacity-80 transition-opacity"
-                      >
-                        <Image
-                          src="/assets/icons/rarible.svg"
-                          alt="View on Rarible"
-                          width={24}
-                          height={24}
-                        />
-                      </a>
-                      <a
-                        href={`https://opensea.io/assets/${params.chain}/${params.contract}/${params.tokenId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:opacity-80 transition-opacity"
-                      >
-                        <Image
-                          src="/assets/icons/opensea.svg"
-                          alt="View on OpenSea"
-                          width={24}
-                          height={24}
-                        />
-                      </a>
-                    </div>
+            {/* Right Column - Info */}
+            <div className="lg:w-[36%]">
+              <div className="flex flex-col h-full">
+                {/* Asset Name */}
+                <h1 className="text-3xl font-bold text-gray-200 mb-4">
+                  {assetDetails?.name || 'Unnamed Asset'}
+                </h1>
+
+                {/* Description with character limit */}
+                <div className="mb-6">  {/* Increased margin bottom */}
+                  <div className="prose dark:prose-invert">
+                    {assetDetails?.description && (
+                      <>
+                        <div className={showFullDescription ? '' : 'relative'}>
+                          <ReactMarkdown>
+                            {showFullDescription 
+                              ? assetDetails.description 
+                              : assetDetails.description.slice(0, DESCRIPTION_CHAR_LIMIT) + '...'}
+                          </ReactMarkdown>
+                          {!showFullDescription && assetDetails.description.length > DESCRIPTION_CHAR_LIMIT && (
+                            <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background dark:from-background-dark to-transparent" />
+                          )}
+                        </div>
+                        {assetDetails.description.length > DESCRIPTION_CHAR_LIMIT && (
+                          <button
+                            onClick={() => setShowFullDescription(!showFullDescription)}
+                            className="mt-2 text-sm text-gray-400 hover:text-gray-200"
+                          >
+                            {showFullDescription ? 'Show Less' : 'Show More'}
+                          </button>
+                        )}
+                      </>
+                    )}
                   </div>
                 </div>
-              </>
-            )}
+
+                {/* Ensure Button and Splits Bar moved up */}
+                {isEnsurance && (
+                  <div className="flex flex-col gap-4">
+                    <Button 
+                      onClick={() => handleOperation('ensure')}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-green-400 to-blue-500 hover:from-green-500 hover:to-blue-600"
+                    >
+                      <Plus className="h-6 w-6 mr-2" />
+                      ENSURE
+                    </Button>
+
+                    {ensuranceData?.creator_reward_recipient_split && (
+                      <a 
+                        href={`/flow/${params.chain}/${ensuranceData.creator_reward_recipient}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full p-4 bg-background dark:bg-background-dark rounded-xl hover:bg-gray-900 transition-colors duration-200"
+                      >
+                        <SplitsBar 
+                          recipients={ensuranceData.creator_reward_recipient_split.recipients} 
+                        />
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Data Section */}
+          <div className="mt-8 p-6 bg-gray-800 rounded-lg mx-auto" style={{ width: '66%' }}>
+            <h2 className="text-xl font-semibold mb-3 text-gray-200">Data</h2>
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-8">
+                <div>
+                  <p className="text-gray-400 text-sm mb-1">Collection</p>
+                  <p className="text-gray-200 text-sm font-mono">
+                    {isEnsurance ? 'Ensurance' : truncateAddress(assetDetails.contract_address || '')}
+                  </p>
+                  <p className="text-gray-500 text-xs mt-1 capitalize">{params.chain}</p>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-sm mb-1">ID</p>
+                  <p className="text-gray-200 text-sm font-mono">{assetDetails.token_id}</p>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <a
+                  href={`https://rarible.com/token/base/${params.contract}:${params.tokenId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-80 transition-opacity"
+                >
+                  <Image
+                    src="/assets/icons/rarible.svg"
+                    alt="View on Rarible"
+                    width={24}
+                    height={24}
+                  />
+                </a>
+                <a
+                  href={`https://opensea.io/assets/${params.chain}/${params.contract}/${params.tokenId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:opacity-80 transition-opacity"
+                >
+                  <Image
+                    src="/assets/icons/opensea.svg"
+                    alt="View on OpenSea"
+                    width={24}
+                    height={24}
+                  />
+                </a>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Login Modal */}
       <Dialog open={showLoginModal} onOpenChange={setShowLoginModal}>

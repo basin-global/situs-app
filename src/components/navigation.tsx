@@ -60,7 +60,7 @@ export function Navigation() {
           ASSETS
         </Button>
       </Link>
-      <Link href={`/${ogPath}/currency`}>
+      <Link href={`/${ogPath}/currency/swap`}>
         <Button 
           variant="ghost" 
           size="sm" 

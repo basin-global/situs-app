@@ -78,3 +78,39 @@
 .og-gradient-text {
   @apply bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-500 text-transparent bg-clip-text;
 }
+
+.custom-scroll::-webkit-scrollbar {
+  width: 0px; /* Remove scrollbar space */
+  background: transparent;
+}
+
+/* For Firefox */
+.custom-scroll {
+  scrollbar-width: none;
+}
+
+/* Visible scrollbar styles */
+.visible-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.visible-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+}
+
+.visible-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+}
+
+.visible-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* For Firefox */
+.visible-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.1);
+}

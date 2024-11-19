@@ -24,14 +24,19 @@ export default function Header() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
+  // Add check for metadata route
+  const isMetadataRoute = pathname.startsWith('/metadata/')
+  if (isMetadataRoute) return null;
+
   const isHomePage = pathname === '/'
   const isProfilePage = pathname.startsWith('/profile')
   const isAdminPage = pathname.startsWith('/manage')
   const isMemberPage = pathname.startsWith('/member')
   const isAssetsPage = pathname.startsWith('/assets')
+  const isFlowPage = pathname.startsWith('/flow')
   const isToolsPage = pathname.startsWith('/tools')
 
-  const isOGPage = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage && !isToolsPage
+  const isOGPage = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage && !isFlowPage && !isToolsPage
 
   const logoSrc = isOGPage && currentOG
     ? `/ogs/orbs/${currentOG.og_name.replace(/^\./, '')}-orb.png`
@@ -41,7 +46,7 @@ export default function Header() {
     ? `/${currentOG.og_name.replace(/^\./, '')}`
     : "/"
 
-  const shouldShowOGChooserAndNavigation = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage && !isToolsPage
+  const shouldShowOGChooserAndNavigation = !isHomePage && !isProfilePage && !isAdminPage && !isMemberPage && !isAssetsPage && !isFlowPage && !isToolsPage
 
   return (
     <header className={`bg-gradient-to-r from-secondary to-primary text-white shadow-lg relative z-[40] py-3`}>

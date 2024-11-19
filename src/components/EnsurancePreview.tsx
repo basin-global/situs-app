@@ -48,7 +48,7 @@ export default function EnsurancePreview({ contractAddress, og }: EnsurancePrevi
               {' '}<span className="text-foreground/90 dark:text-foreground-dark/90">reduce risk and increase resilience</span>
             </p>
             <Link 
-              href={`/${og}/ensurance`}
+              href={`/${og}/ensurance/all`}
               className="text-sm font-medium text-primary hover:text-primary-dark transition-colors"
             >
               View All →
