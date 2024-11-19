@@ -320,14 +320,28 @@ export async function getAccountByName(og: string, accountName: string) {
   try {
     const sanitizedOG = sanitizeOGName(og);
     const tableName = `situs_accounts_${sanitizedOG}`;
+    
+    // First check if description column exists
+    const { rows: columns } = await sql.query(`
+      SELECT column_name 
+      FROM information_schema.columns 
+      WHERE table_name = $1 AND column_name = 'description'
+    `, [`situs_accounts_${sanitizedOG}`]);
+    
+    const hasDescription = columns.length > 0;
+    
+    // Dynamically build the SELECT statement
+    const selectColumns = `
+      token_id,
+      account_name, 
+      created_at, 
+      tba_address, 
+      owner_of
+      ${hasDescription ? ', description' : ''}
+    `;
+
     const result = await sql.query(`
-      SELECT 
-        token_id,
-        account_name, 
-        created_at, 
-        tba_address, 
-        owner_of,
-        description
+      SELECT ${selectColumns}
       FROM "${tableName}"
       WHERE account_name = $1
       LIMIT 1
@@ -338,7 +352,6 @@ export async function getAccountByName(og: string, accountName: string) {
     }
 
     const account = result.rows[0];
-    // Ensure token_id is returned as a number
     account.token_id = Number(account.token_id);
 
     return account;

@@ -20,8 +20,12 @@ export interface OG {
   
   export interface OgAccount {
     tba_address: string;
-    account_name: string;  // This will be used as name
-    // Add other fields as needed
+    account_name: string;
+    token_id: number;
+    created_at?: string;
+    owner_of?: string;
+    description?: string;
+    // ... any other fields from database
   }
 
   export interface ValidationReport {

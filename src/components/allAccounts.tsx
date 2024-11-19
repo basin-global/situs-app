@@ -4,6 +4,7 @@ import React, { useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useOG } from '@/contexts/og-context'
 import { OgAccount } from '@/types'
+import AccountImage from '@/components/AccountImage'
 
 interface AllAccountsProps {
   og: string
@@ -88,19 +89,25 @@ export default function AllAccounts({ og, searchQuery, setSearchQuery, accounts:
             )}
           </div>
         )}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {filteredAccounts.map((account) => {
             const displayName = getDisplayName(account);
             const url = constructAccountUrl(account);
-            const key = account.id || account.token_id;
+            const key = account.token_id;
 
             return (
               <Link
                 key={key}
                 href={url}
-                className="bg-primary dark:bg-primary-dark hover:bg-primary-dark dark:hover:bg-primary text-primary-foreground dark:text-primary-dark-foreground font-bold py-4 px-6 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 flex items-center"
+                className="bg-primary dark:bg-primary-dark hover:bg-primary-dark dark:hover:bg-primary text-primary-foreground dark:text-primary-dark-foreground font-bold py-4 px-6 rounded-lg transition duration-300 ease-in-out transform hover:-translate-y-1 hover:scale-105 flex items-center min-h-[72px]"
               >
-                <span className="text-lg font-mono">{displayName}</span>
+                <div className="w-10 h-10 rounded-full overflow-hidden mr-4 flex-shrink-0 flex items-center justify-center">
+                  <AccountImage 
+                    tokenId={account.token_id} 
+                    className="object-cover"
+                  />
+                </div>
+                <span className="text-lg font-mono truncate">{displayName}</span>
               </Link>
             );
           })}
