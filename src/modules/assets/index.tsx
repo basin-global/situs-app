@@ -171,9 +171,9 @@ export default function AssetsModule({
             setAssets(prev => pageNum === 1 ? ensuranceNFTs : [...prev, ...ensuranceNFTs]);
             setHasMore(ensuranceNFTs.length === ITEMS_PER_PAGE);
           } else {
-            const assets = await fetchEnsuranceFromDB(selectedChain, pageNum, ITEMS_PER_PAGE);
+            const assets = await fetchEnsuranceFromDB(selectedChain);
             setAssets(prev => pageNum === 1 ? assets : [...prev, ...assets]);
-            setHasMore(assets.length === ITEMS_PER_PAGE);
+            setHasMore(false);
           }
         } else {
           const response = await axios.get(`/api/simplehash/nft`, {

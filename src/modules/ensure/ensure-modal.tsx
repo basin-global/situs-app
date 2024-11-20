@@ -193,18 +193,20 @@ export function EnsureModal({
               <div className="border border-gray-700 rounded-lg p-3">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-lg font-semibold text-gray-200">Account Image</h3>
-                  <div className="flex gap-2">
-                    <button className="px-3 py-1 text-sm bg-blue-600/30 text-blue-400 rounded hover:bg-blue-600/40 transition-colors">
-                      Change
-                    </button>
-                    <button className="px-3 py-1 text-sm bg-red-600/30 text-red-400 rounded hover:bg-red-600/40 transition-colors">
-                      Remove
-                    </button>
-                  </div>
+                  {asset.image_url && (
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1 text-sm bg-blue-600/30 text-blue-400 rounded hover:bg-blue-600/40 transition-colors">
+                        Change
+                      </button>
+                      <button className="px-3 py-1 text-sm bg-red-600/30 text-red-400 rounded hover:bg-red-600/40 transition-colors">
+                        Remove
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="bg-gray-700/50 rounded-lg p-2 flex items-center justify-center">
                   <div className="w-24 h-24 relative rounded-lg overflow-hidden">
-                    {asset.image_url && (
+                    {asset.image_url ? (
                       <img 
                         src={asset.image_url}
                         alt="Account Image"
@@ -214,8 +216,7 @@ export function EnsureModal({
                           e.currentTarget.style.display = 'none';
                         }}
                       />
-                    )}
-                    {!asset.image_url && (
+                    ) : (
                       <div className="w-full h-full bg-gray-600 flex items-center justify-center">
                         <span className="text-gray-400">No Image</span>
                       </div>

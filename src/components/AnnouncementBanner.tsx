@@ -36,7 +36,7 @@ export default function AnnouncementBanner() {
             <p className="text-xs text-gray-300 text-center">
               <span className="inline-flex items-center">
                 <span className="mr-1">⚡️</span>
-                <span>YOU'RE EARLY - please</span>
+                <span>YOU&apos;RE EARLY - please</span>
                 <Link
                   href="https://x.com/ensitus_xyz"
                   className="ml-1 font-medium text-amber-400 hover:text-amber-300 transition-colors underline-offset-4 hover:underline"

@@ -211,27 +211,29 @@ export default function AccountPage({ params }: { params: { og: string; 'account
                 <div className="flex items-center justify-center">
                   <div className="flex items-center gap-4">
                     <div className="h-24 w-24 flex-shrink-0 relative">
-                      <div 
-                        onClick={() => setShowFullImage(true)}
-                        className="cursor-pointer group/image"
-                      >
-                        <AccountImage tokenId={account.token_id} />
-                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/image:bg-opacity-30 transition-all duration-200 rounded-full flex items-center justify-center">
-                          <svg 
-                            className="w-6 h-6 text-white opacity-0 group-hover/image:opacity-100 transition-opacity duration-200"
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path 
-                              strokeLinecap="round" 
-                              strokeLinejoin="round" 
-                              strokeWidth={2} 
-                              d="M4 8V4m0 0h4M4 4l5 5m11-5V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" 
-                            />
-                          </svg>
+                      {account.token_id ? (
+                        <div 
+                          onClick={() => account.token_id && setShowFullImage(true)}
+                          className={`${account.token_id ? 'cursor-pointer group/image' : ''}`}
+                        >
+                          <AccountImage tokenId={account.token_id} />
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/image:bg-opacity-30 transition-all duration-200 rounded-full flex items-center justify-center">
+                            <svg 
+                              className="w-6 h-6 text-white opacity-0 group-hover/image:opacity-100 transition-opacity duration-200"
+                              fill="none" 
+                              stroke="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path 
+                                strokeLinecap="round" 
+                                strokeLinejoin="round" 
+                                strokeWidth={2} 
+                                d="M4 8V4m0 0h4M4 4l5 5m11-5V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" 
+                              />
+                            </svg>
+                          </div>
                         </div>
-                      </div>
+                      ) : null}
                     </div>
 
                     <div className="flex flex-col gap-1">
