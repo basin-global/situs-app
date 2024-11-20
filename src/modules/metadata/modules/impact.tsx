@@ -10,12 +10,7 @@ interface MetadataImpactProps {
 export default function MetadataImpact({ address, selectedChain }: MetadataImpactProps) {
   return (
     <div className="p-4">
-      <ImpactModule
-        address={address}
-        selectedChain={selectedChain}
-        isTokenbound={true}
-        isOwner={false}
-      />
+      <ImpactModule />
     </div>
   );
 } 

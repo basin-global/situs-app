@@ -17,6 +17,8 @@ export default function RecentAccounts({ og }: RecentAccountsProps) {
   }, [og, fetchAccounts])
 
   const recentAccounts = useMemo(() => {
+    if (!accounts || accounts.length === 0) return [];
+    
     return [...accounts]
       .sort((a, b) => Number(b.token_id) - Number(a.token_id))
       .slice(0, 12)
@@ -24,6 +26,10 @@ export default function RecentAccounts({ og }: RecentAccountsProps) {
 
   if (isLoading) {
     return <div className="text-center py-2 text-sm text-foreground/60">Loading newest members...</div>
+  }
+
+  if (!recentAccounts || recentAccounts.length === 0) {
+    return <div className="text-center py-2 text-sm text-foreground/60">No members yet</div>
   }
 
   return (

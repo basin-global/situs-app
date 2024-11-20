@@ -1,7 +1,7 @@
 import { getMetadata } from '@/modules/metadata/handlers';
 import { generateAccountImage } from '@/modules/metadata/ImageGenerator';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 
 export async function GET(
   request: Request,
@@ -11,7 +11,10 @@ export async function GET(
     const metadata = await getMetadata(params.contract, params.tokenId);
     const imageBuffer = await generateAccountImage(
       metadata.image,
-      metadata.name
+      metadata.name,
+      params.contract,
+      params.tokenId,
+      { fontSize: 48 }
     );
 
     return new Response(imageBuffer, {
@@ -22,6 +25,7 @@ export async function GET(
       }
     });
   } catch (error) {
+    console.error('Error generating image:', error);
     return new Response('Error generating image', { status: 500 });
   }
 } 

@@ -21,6 +21,8 @@ async function checkImageExists(url: string): Promise<boolean> {
   }
 }
 
+const METADATA_BASE_URL = process.env.NEXT_PUBLIC_METADATA_URL || 'https://ensitus.xyz';
+
 export async function getMetadata(contract: string, tokenId: string): Promise<MetadataResponse> {
   try {
     console.log('Getting metadata for:', { contract, tokenId });
@@ -83,7 +85,7 @@ export async function getMetadata(contract: string, tokenId: string): Promise<Me
     const metadata = {
       name: `${account.account_name}${og.og_name}`,
       description: account.description || '',
-      animation_url: `https://ensitus.xyz/metadata/${contract}/${tokenId}`,
+      animation_url: `${METADATA_BASE_URL}/metadata/${contract}/${tokenId}`,
       image: imageUrl,
       og_name: isUsingFallback ? 'default' : sanitizedOG,
       tba_address: account.tba_address,

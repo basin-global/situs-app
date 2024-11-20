@@ -10,12 +10,7 @@ interface MetadataReputationProps {
 export default function MetadataReputation({ address, selectedChain }: MetadataReputationProps) {
   return (
     <div className="p-4">
-      <ReputationModule
-        address={address}
-        selectedChain={selectedChain}
-        isTokenbound={true}
-        isOwner={false}
-      />
+      <ReputationModule />
     </div>
   );
 } 

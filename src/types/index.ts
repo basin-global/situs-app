@@ -14,7 +14,7 @@ export interface OG {
     chat?: string; // Add this line, making it optional
     total_supply: number; // Add this line, making it required
     website?: string; // Add this line, making it optional
-    group_ensurance?: string; // Add this new field
+    group_ensurance?: string | boolean; // Update to allow both string and boolean
     // ... other properties
   };
   
@@ -40,6 +40,14 @@ export interface OG {
       missing: string[];
       invalid: string[];
       missingTBA: string[];
+    };
+    chains: {
+      [key: string]: {
+        // Add specific chain properties here
+        total?: number;
+        valid?: number;
+        invalid?: number;
+      };
     };
     summary: string;
   }
@@ -82,6 +90,7 @@ export interface OG {
     nft_id?: string;
     isTokenbound?: boolean;
     isNative?: boolean;
+    mime_type?: string;
     collection?: {
       name?: string;
     };

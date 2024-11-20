@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSplitMetadata } from '@0xsplits/splits-sdk-react';
 import { getActiveChains } from '@/config/chains';
 import { SplitsBar } from '@/modules/splits/components/SplitsBar';
@@ -58,38 +58,27 @@ export default function SplitsChecker() {
   const [error, setError] = useState<string | null>(null);
   
   const activeChains = getActiveChains();
-  
-  // Add more detailed logging for each chain's response
-  const chainMetadata = activeChains.map(chain => {
-    const { splitMetadata, isLoading, status, error: splitError } = useSplitMetadata(
-      chain.id,
-      address || ''
-    );
-    
-    // Detailed logging of the response
-    console.log(`Chain ${chain.name} (${chain.id}) response:`, {
-      metadata: splitMetadata,
-      error: splitError,
-      status,
-      isLoading,
-      hasData: !!splitMetadata,
-      errorType: splitError ? splitError.constructor.name : null,
-      errorMessage: splitError?.message
-    });
-    
-    return {
-      chainId: chain.id,
-      chainName: chain.name,
-      splitMetadata,
-      splitError,
-      isLoading,
-      status
-    };
-  });
+
+  // Call hooks individually at the top level for each chain
+  const baseChainData = useSplitMetadata(8453, address || '');  // Base
+  const arbitrumData = useSplitMetadata(42161, address || '');  // Arbitrum
+
+  const chainMetadata = useMemo(() => [
+    {
+      chainId: 8453,
+      chainName: 'Base',
+      ...baseChainData
+    },
+    {
+      chainId: 42161,
+      chainName: 'Arbitrum',
+      ...arbitrumData
+    }
+  ], [baseChainData, arbitrumData]);
 
   const isAnyLoading = chainMetadata.some(chain => chain.isLoading);
 
-  const handleCheck = () => {
+  const handleCheck = useCallback(() => {
     setError(null);
     setResults([]);
 
@@ -105,11 +94,11 @@ export default function SplitsChecker() {
       chain: chain.chainName,
       chainId: chain.chainId,
       split: chain.splitMetadata,
-      error: chain.splitError?.message
+      error: chain.error?.message
     }));
 
     setResults(newResults);
-  };
+  }, [address, chainMetadata, router]);
 
   // Load initial address from URL
   useEffect(() => {
@@ -118,7 +107,7 @@ export default function SplitsChecker() {
       setAddress(urlAddress);
       handleCheck();
     }
-  }, []);
+  }, [searchParams, handleCheck]);
 
   return (
     <div className="container max-w-2xl mx-auto p-4">

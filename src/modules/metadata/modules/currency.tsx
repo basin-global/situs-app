@@ -14,9 +14,6 @@ export default function MetadataCurrency({ address, selectedChain }: MetadataCur
         address={address}
         selectedChain={selectedChain}
         isTokenbound={true}
-        isOwner={false}
-        searchQuery=""
-        setSearchQuery={() => {}}
       />
     </div>
   );

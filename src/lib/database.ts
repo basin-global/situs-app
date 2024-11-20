@@ -1,5 +1,5 @@
-import { createPublicClient, http, parseAbi, PublicClient, HttpTransport, Chain, getContract } from 'viem';
-import { base, zora, arbitrum, optimism } from 'viem/chains';
+import { createPublicClient, http, Chain, PublicClient, Transport, HttpTransport, parseAbi } from 'viem';
+import { base, arbitrum, optimism, zora } from 'viem/chains';
 import { sql } from '@vercel/postgres';
 import OGABI from '@/abi/SitusOG.json';
 import { calculateTBA } from '@/utils/tba';
@@ -19,19 +19,31 @@ const FACTORY_ABI = parseAbi([
 const chainClients = {
   base: createPublicClient({
     chain: base,
-    transport: http()
+    transport: http(),
+    batch: {
+      multicall: true
+    }
   }),
   optimism: createPublicClient({
     chain: optimism,
-    transport: http()
+    transport: http(),
+    batch: {
+      multicall: true
+    }
   }),
   arbitrum: createPublicClient({
     chain: arbitrum,
-    transport: http()
+    transport: http(),
+    batch: {
+      multicall: true
+    }
   }),
   zora: createPublicClient({
     chain: zora,
-    transport: http()
+    transport: http(),
+    batch: {
+      multicall: true
+    }
   })
 };
 
@@ -41,18 +53,20 @@ const publicClient = createPublicClient({
   transport: http(),
 });
 
-function getClient(chain: string = 'base'): PublicClient<HttpTransport, Chain> {
-  if (chain in chainClients) {
-    return chainClients[chain as keyof typeof chainClients];
+type ChainClientKey = keyof typeof chainClients;
+
+function getClient(chain: string = 'base'): PublicClient {
+  const chainKey = chain as ChainClientKey;
+  if (chainKey in chainClients) {
+    return chainClients[chainKey] as PublicClient;
   }
   console.warn(`Chain ${chain} not found, using base`);
-  return chainClients.base;
+  return chainClients.base as PublicClient;
 }
 
 export function sanitizeOGName(og: string): string {
   return og.startsWith('.') ? og.slice(1) : og;
 }
-
 export async function updateOGs() {
   const client = getClient();
 
@@ -371,7 +385,17 @@ export async function verifyDatabaseState(): Promise<ValidationReport> {
       invalid: [] as string[],
       totalSupplyMismatch: [] as string[]
     },
-    accounts: { total: 0, missing: [] as string[], invalid: [] as string[], missingTBA: [] as string[] },
+    accounts: { 
+      total: 0, 
+      missing: [] as string[], 
+      invalid: [] as string[], 
+      missingTBA: [] as string[] 
+    },
+    chains: {} as Record<string, {
+      total: number;
+      valid: number;
+      invalid: number;
+    }>,
     summary: ''
   };
 
@@ -666,43 +690,43 @@ const ZORA_1155_IMPL_ABI = [
   }
 ] as const;
 
-// Initialize Splits clients with dataClient
+// Initialize Splits clients with transport
 const splitsClients = {
   base: new SplitsClient({
     chainId: base.id,
-    publicClient: chainClients.base,
+    publicClient: chainClients.base as any,
     includeEnsNames: false,
     apiConfig: {
       apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
     }
-  }).dataClient,  // Use dataClient
+  }).dataClient,
 
   optimism: new SplitsClient({
     chainId: optimism.id,
-    publicClient: chainClients.optimism,
+    publicClient: chainClients.optimism as any,
     includeEnsNames: false,
     apiConfig: {
       apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
     }
-  }).dataClient,  // Use dataClient
+  }).dataClient,
 
   arbitrum: new SplitsClient({
     chainId: arbitrum.id,
-    publicClient: chainClients.arbitrum,
+    publicClient: chainClients.arbitrum as any,
     includeEnsNames: false,
     apiConfig: {
       apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
     }
-  }).dataClient,  // Use dataClient
+  }).dataClient,
 
   zora: new SplitsClient({
     chainId: zora.id,
-    publicClient: chainClients.zora,
+    publicClient: chainClients.zora as any,
     includeEnsNames: false,
     apiConfig: {
       apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
     }
-  }).dataClient  // Use dataClient
+  }).dataClient
 };
 
 // Add this helper function
@@ -784,10 +808,10 @@ export async function updateEnsuranceDatabase(): Promise<ValidationReport> {
                 
                 try {
                   // Get split metadata directly from API
-                  splitMetadata = await splitsClients[chain as keyof typeof splitsClients].getSplitMetadata({
+                  splitMetadata = await splitsClients[chain as keyof typeof splitsClients]?.getSplitMetadata({
                     chainId,
                     splitAddress: creatorRewardRecipient as Address
-                  });
+                  }) ?? null;
                 } catch (splitError) {
                   // If not a split contract, create a simple non-split format
                   splitMetadata = {
@@ -868,18 +892,25 @@ export async function updateEnsuranceDatabase(): Promise<ValidationReport> {
               ]);
 
               report.chains[chain].updated++;
-            } catch (ipfsError) {
-              console.error(`Error fetching IPFS metadata for token ${tokenId}:`, ipfsError);
-              report.chains[chain].errors.push(`Token ${tokenId}: IPFS fetch failed - ${ipfsError.message}`);
+            } catch (error: any) {
+              console.error(`Error fetching IPFS metadata for token ${tokenId}:`, error);
+              report.chains[chain].errors.push(`Token ${tokenId}: IPFS fetch failed - ${error.message || 'Unknown error'}`);
             }
           } catch (tokenError) {
             console.error(`Error checking token ${tokenId} on ${chain}:`, tokenError);
-            report.chains[chain].errors.push(`Token ${tokenId}: ${tokenError.message}`);
+            if (tokenError instanceof Error) {
+              report.chains[chain].errors.push(`Token ${tokenId}: ${tokenError.message}`);
+            } else {
+              report.chains[chain].errors.push(`Token ${tokenId}: Unknown error`);
+            }
           }
         }
       } catch (contractError) {
-        console.error(`Error checking contract ${contractAddress} on ${chain}:`, contractError);
-        report.chains[chain].errors.push(`Contract error: ${contractError.message}`);
+        if (contractError instanceof Error) {
+          report.chains[chain].errors.push(`Contract error: ${contractError.message}`);
+        } else {
+          report.chains[chain].errors.push(`Contract error: Unknown error`);
+        }
       }
     }
 
@@ -921,3 +952,4 @@ async function getEnsuranceContracts() {
   `;
   return rows;
 }
+

@@ -40,7 +40,7 @@ export default function MyAccountsPage() {
           if (data.nfts) {
             const accounts = data.nfts.map(nft => ({
               account_name: nft.name,
-              token_id: nft.token_id,
+              token_id: parseInt(nft.token_id),
               tba_address: '',
               og_name: currentOG.og_name
             }));
@@ -60,9 +60,9 @@ export default function MyAccountsPage() {
 
   if (!user?.wallet?.address) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8 flex justify-center">
-          <SubNavigation />
+      <div className="container mx-auto px-4 py-4">
+        <div className="mb-4 flex justify-center">
+          <SubNavigation type="accounts" />
         </div>
         
         <div className="text-center">

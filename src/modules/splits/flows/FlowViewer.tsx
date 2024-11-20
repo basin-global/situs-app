@@ -25,6 +25,14 @@ const defaultViewport = { x: 0, y: 0, zoom: 0.75 };
 const nodeTypes = { flowNode: FlowNode };
 const MAX_DEPTH = 10;
 
+interface SplitRecipient {
+  percentAllocation: number;
+  recipient: {
+    address: string;
+    ens?: string;
+  };
+}
+
 export function FlowViewer({ address, chainId }: FlowViewerProps) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
@@ -35,7 +43,7 @@ export function FlowViewer({ address, chainId }: FlowViewerProps) {
   // Get split metadata for level 0
   const { splitMetadata: initialSplitMetadata, error: splitError, isLoading } = useSplitMetadata(chainId, address);
 
-  const handleSplitFound = useCallback((level: number, splitAddress: string, metadata: any) => {
+  const handleSplitFound = useCallback((level: number, splitAddress: string, metadata: { recipients: SplitRecipient[] }) => {
     // Update nodes
     setNodes(currentNodes => {
       // Skip if we already have this node
@@ -65,7 +73,7 @@ export function FlowViewer({ address, chainId }: FlowViewerProps) {
     setEdges(currentEdges => {
       const newEdges: Edge[] = [];
       
-      metadata.recipients.forEach(recipient => {
+      metadata.recipients.forEach((recipient: SplitRecipient) => {
         const edgeId = `${splitAddress}-${recipient.recipient.address}`;
         if (!currentEdges.find(e => e.id === edgeId)) {
           newEdges.push({
@@ -75,7 +83,6 @@ export function FlowViewer({ address, chainId }: FlowViewerProps) {
             sourceHandle: 'source',
             targetHandle: 'target',
             label: `${Math.round(recipient.percentAllocation)}%`,
-            labelClassName: 'font-mono',
             type: 'smoothstep',
             markerEnd: {
               type: MarkerType.ArrowClosed,
@@ -89,7 +96,7 @@ export function FlowViewer({ address, chainId }: FlowViewerProps) {
 
       return [...currentEdges, ...newEdges];
     });
-  }, [seenAddresses]);
+  }, [seenAddresses, setNodes, setEdges]);
 
   if (isLoading) {
     return (

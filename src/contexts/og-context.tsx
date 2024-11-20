@@ -24,6 +24,20 @@ export function OGProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
 
+  const handleSetCurrentOG = useCallback((og: OG) => {
+    setIsLoading(true);
+    setAccounts([]);
+    setCurrentOG(og);
+    
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 100);
+  }, []);
+
+  const getOGByName = useCallback((name: string) => {
+    return OGs.find(og => og.og_name === name || og.og_name === `.${name}`);
+  }, [OGs]);
+
   useEffect(() => {
     const fetchOGs = async () => {
       setIsLoading(true);
@@ -47,17 +61,15 @@ export function OGProvider({ children }: { children: React.ReactNode }) {
     if (ogNameFromPath && (!currentOG || ogNameFromPath !== currentOG.og_name.replace(/^\./, ''))) {
       const ogToSet = getOGByName(ogNameFromPath);
       if (ogToSet) {
-        setCurrentOG(ogToSet);
+        handleSetCurrentOG(ogToSet);
       }
     }
-  }, [pathname, OGs]);
-
-  const getOGByName = useCallback((name: string) => {
-    return OGs.find(og => og.og_name === name || og.og_name === `.${name}`);
-  }, [OGs]);
+  }, [pathname, OGs, currentOG, getOGByName, handleSetCurrentOG]);
 
   const fetchAccounts = useCallback(async (og: string) => {
     setIsLoading(true);
+    setAccounts([]);
+    
     try {
       const response = await fetch(`/api/getAccounts?og=${og}`);
       if (!response.ok) {
@@ -67,6 +79,7 @@ export function OGProvider({ children }: { children: React.ReactNode }) {
       setAccounts(data);
     } catch (error) {
       console.error('Error fetching accounts:', error);
+      setAccounts([]);
     } finally {
       setIsLoading(false);
     }
@@ -74,13 +87,13 @@ export function OGProvider({ children }: { children: React.ReactNode }) {
 
   const contextValue = useMemo(() => ({
     currentOG,
-    setCurrentOG,
+    setCurrentOG: handleSetCurrentOG,
     OGs,
     isLoading,
     getOGByName,
     accounts,
     fetchAccounts,
-  }), [currentOG, setCurrentOG, OGs, isLoading, getOGByName, accounts, fetchAccounts]);
+  }), [currentOG, handleSetCurrentOG, OGs, isLoading, getOGByName, accounts, fetchAccounts]);
 
   return (
     <OGContext.Provider value={contextValue}>

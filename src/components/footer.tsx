@@ -6,37 +6,20 @@ import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePrivy } from '@privy-io/react-auth'
-import ReferralComponent from './ReferralComponent'  // Import the ReferralComponent
+import ReferralComponent from './ReferralComponent'
 
 export default function Footer() {
   const { currentOG } = useOG()
   const pathname = usePathname()
   const pathParts = pathname.split('/')
-  
-  // Hide footer on metadata pages
-  if (pathname.startsWith('/metadata')) {
-    return null
-  }
-  
-  // Only consider it an OG page if the first part matches an OG name
-  const isOGPage = currentOG?.og_name.replace(/^\./, '') === pathParts[1]
-
-  const iconSize = 24
-
-  const [darkMode, setDarkMode] = useState(true) // Keep this for now
   const { authenticated } = usePrivy()
   const [ethPrice, setEthPrice] = useState<number | null>(null)
+  const isOGPage = currentOG?.og_name.replace(/^\./, '') === pathParts[1]
+  const iconSize = 24
 
   useEffect(() => {
-    // Separate dark mode initialization from ETH price logic
-    const isDarkMode = localStorage.getItem('darkMode') === 'true'
-    if (isDarkMode || isDarkMode === null) { // Default to dark if not set
-      document.documentElement.classList.add('dark')
-      setDarkMode(true)
-    } else {
-      document.documentElement.classList.remove('dark')
-      setDarkMode(false)
-    }
+    // Always set dark mode
+    document.documentElement.classList.add('dark')
 
     // ETH price fetching logic
     const fetchEthPrice = async () => {
@@ -61,6 +44,11 @@ export default function Footer() {
       return () => clearInterval(interval)
     }
   }, [authenticated])
+
+  // Move metadata check after hooks
+  if (pathname.startsWith('/metadata')) {
+    return null
+  }
 
   return (
     <footer className="bg-gray-800 dark:bg-gray-900 text-white py-8">

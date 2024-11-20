@@ -25,9 +25,9 @@ export default function AllAccounts({ og, searchQuery, setSearchQuery, accounts:
     }
   }, [og, fetchAccounts, providedAccounts])
 
-  const displayAccounts = providedAccounts || contextAccounts || [];
-
   const filteredAccounts = useMemo(() => {
+    const displayAccounts = providedAccounts || contextAccounts || [];
+    
     if (!searchQuery) return displayAccounts;
     
     return displayAccounts.filter(account => {
@@ -38,7 +38,7 @@ export default function AllAccounts({ og, searchQuery, setSearchQuery, accounts:
       return accountName.toLowerCase().includes(query) ||
              tokenId.includes(query);
     });
-  }, [displayAccounts, searchQuery]);
+  }, [providedAccounts, contextAccounts, searchQuery]);
 
   const getDisplayName = (account: OgAccount) => {
     const accountName = account?.account_name || '';

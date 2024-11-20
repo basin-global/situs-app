@@ -596,7 +596,7 @@ const CreateAccountPage = () => {
           <div className="w-full mt-12" id="distribution">
             <GroupEnsurance 
               ogName={currentOG?.og_name?.startsWith('.') ? currentOG.og_name.slice(1) : currentOG?.og_name || ''} 
-              groupEnsuranceText={currentOG?.group_ensurance}
+              groupEnsuranceText={typeof currentOG?.group_ensurance === 'string' ? currentOG.group_ensurance : undefined}
             />
           </div>
 

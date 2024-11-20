@@ -84,6 +84,9 @@ export default function AssetsModule({
   const [ownedNFTs, setOwnedNFTs] = useState<any[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const CHAINS_PER_LOAD = 2;
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const ITEMS_PER_PAGE = 12;
 
   console.log('AssetsModule rendered with address:', address, 'selectedChain:', selectedChain)
 
@@ -92,16 +95,21 @@ export default function AssetsModule({
     ? Object.keys(ensuranceContracts)
     : getActiveChains().map(c => c.simplehashName);
 
-  const fetchAssets = useCallback(async () => {
+  // Modify fetchAssets to handle pagination
+  const fetchAssets = useCallback(async (pageNum = 1) => {
     console.log('=== fetchAssets START ===', {
       address,
       selectedChain,
       isEnsuranceTab,
-      isTokenbound
+      isTokenbound,
+      page: pageNum
     });
 
-    setLoading(true);
-    setAssets([]);
+    if (pageNum === 1) {
+      setLoading(true);
+      setAssets([]);
+    }
+
     try {
       if (selectedChain === 'all') {
         if (isEnsuranceTab) {
@@ -144,33 +152,40 @@ export default function AssetsModule({
           setDisplayedChains([Object.keys(chainData)[0]]);
         }
       } else {
-        // Single chain fetch
-        console.log('Fetching single chain:', selectedChain);
-        
+        // Single chain fetch with pagination
         if (isEnsuranceTab) {
-          // For 'mine' page - use SimpleHash to get owned assets
           if (address && window.location.pathname.includes('/mine')) {
             const response = await axios.get(`/api/simplehash/nft`, {
               params: { 
                 address,
                 chain: selectedChain,
-                fetchAll: true 
+                page: pageNum,
+                limit: ITEMS_PER_PAGE
               }
             });
-            // Filter for only ensurance tokens
+            
             const ensuranceNFTs = response.data.nfts?.filter((nft: Asset) => 
               isEnsuranceToken(nft.chain, nft.contract_address)
             ) || [];
-            setAssets(ensuranceNFTs);
+
+            setAssets(prev => pageNum === 1 ? ensuranceNFTs : [...prev, ...ensuranceNFTs]);
+            setHasMore(ensuranceNFTs.length === ITEMS_PER_PAGE);
           } else {
-            // For 'all' page - use DB route
-            const assets = await fetchEnsuranceFromDB(selectedChain);
-            setAssets(assets);
+            const assets = await fetchEnsuranceFromDB(selectedChain, pageNum, ITEMS_PER_PAGE);
+            setAssets(prev => pageNum === 1 ? assets : [...prev, ...assets]);
+            setHasMore(assets.length === ITEMS_PER_PAGE);
           }
         } else {
-          // Regular assets tab fetch
-          const response = await axios.get(`/api/simplehash/nft?address=${address}&chain=${selectedChain}`);
-          setAssets(response.data.nfts || []);
+          const response = await axios.get(`/api/simplehash/nft`, {
+            params: {
+              address,
+              chain: selectedChain,
+              page: pageNum,
+              limit: ITEMS_PER_PAGE
+            }
+          });
+          setAssets(prev => pageNum === 1 ? response.data.nfts : [...prev, ...response.data.nfts]);
+          setHasMore(response.data.nfts?.length === ITEMS_PER_PAGE);
         }
       }
     } catch (error) {
@@ -180,10 +195,18 @@ export default function AssetsModule({
     }
   }, [address, selectedChain, isEnsuranceTab, isTokenbound]);
 
-  // Initial fetch when component mounts or key props change
+  // Load more function for infinite scroll
+  const loadMore = useCallback(() => {
+    if (!loading && hasMore) {
+      setPage(prev => prev + 1);
+      fetchAssets(page + 1);
+    }
+  }, [loading, hasMore, fetchAssets, page]);
+
+  // Initial fetch
   useEffect(() => {
-    console.log('Initial fetch triggered');
-    fetchAssets();
+    setPage(1);
+    fetchAssets(1);
   }, [fetchAssets]);
 
   // Load more chains when scrolling
@@ -247,29 +270,25 @@ export default function AssetsModule({
 
   return (
     <div className="bg-transparent">
-      {loading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, index) => (
-            <Card key={`skeleton-${index}`}>
-              <CardContent className="p-4">
-                <Skeleton className="h-48 w-full mb-4" />
-                <Skeleton className="h-4 w-3/4 mb-2" />
-                <Skeleton className="h-4 w-1/2" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : filteredAssets.length > 0 ? (
-        <InfiniteScroll
-          dataLength={filteredAssets.length}
-          next={loadMoreChains}
-          hasMore={selectedChain === 'all' && displayedChains.length < Object.keys(allChainsData).length}
-          loader={
-            <div className="text-center py-4">
-              Loading next chains... ({displayedChains.length}/{Object.keys(allChainsData).length})
-            </div>
-          }
-        >
+      <InfiniteScroll
+        dataLength={filteredAssets.length}
+        next={loadMore}
+        hasMore={hasMore}
+        loader={
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 mt-6">
+            {[...Array(4)].map((_, index) => (
+              <Card key={`skeleton-${index}`}>
+                <CardContent className="p-4">
+                  <Skeleton className="h-48 w-full mb-4" />
+                  <Skeleton className="h-4 w-3/4 mb-2" />
+                  <Skeleton className="h-4 w-1/2" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        }
+      >
+        {filteredAssets.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 auto-rows-fr">
             {filteredAssets.map((asset) => {
               const isFeatured = isEnsuranceTab && currentOG?.og_name 
@@ -292,16 +311,16 @@ export default function AssetsModule({
               );
             })}
           </div>
-        </InfiniteScroll>
-      ) : (
-        <div className="text-center py-8">
-          <p className="text-lg text-gray-600 dark:text-gray-400">
-            {selectedChain === 'all'
-              ? `No ${isEnsuranceTab ? 'ensurance' : ''} assets found${searchQuery ? ' matching your search' : ''}.`
-              : `No ${isEnsuranceTab ? 'ensurance' : ''} assets found for the selected chain (${selectedChain})${searchQuery ? ' matching your search' : ''}.`}
-          </p>
-        </div>
-      )}
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-lg text-gray-600 dark:text-gray-400">
+              {selectedChain === 'all'
+                ? `No ${isEnsuranceTab ? 'ensurance' : ''} assets found${searchQuery ? ' matching your search' : ''}.`
+                : `No ${isEnsuranceTab ? 'ensurance' : ''} assets found for the selected chain (${selectedChain})${searchQuery ? ' matching your search' : ''}.`}
+            </p>
+          </div>
+        )}
+      </InfiniteScroll>
     </div>
   )
 }

@@ -27,21 +27,10 @@ const nextConfig = {
       use: ['@svgr/webpack']
     });
 
-    // Simplified fallbacks - just ignore Node.js modules
+    // Keep only fs fallback for compatibility
     config.resolve.fallback = {
       ...config.resolve.fallback,
-      fs: false,
-      net: false,
-      tls: false,
-      crypto: false,
-      stream: false,
-      url: false,
-      zlib: false,
-      http: false,
-      https: false,
-      assert: false,
-      os: false,
-      path: false,
+      fs: false
     };
 
     return config;

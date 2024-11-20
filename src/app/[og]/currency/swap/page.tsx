@@ -13,8 +13,8 @@ export default function SwapCurrencyPage() {
   if (!currentOG) return null;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex justify-center">
+    <div className="container mx-auto px-4 py-4">
+      <div className="mb-4 flex justify-center">
         <SubNavigation type="currency" />
       </div>
 

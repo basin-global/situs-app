@@ -31,15 +31,16 @@ export async function GET(
 
     console.log('Generated image URL:', generatedImageUrl);
 
-    return Response.json({
+    return new Response(JSON.stringify({
       ...metadata,
       image: generatedImageUrl
+    }), {
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
   } catch (error) {
     console.error('Error in metadata route:', error);
-    if (error instanceof Error) {
-      return Response.json({ error: error.message }, { status: 500 });
-    }
-    return Response.json({ error: 'Failed to generate metadata' }, { status: 500 });
+    return new Response('Error generating metadata', { status: 500 });
   }
 }

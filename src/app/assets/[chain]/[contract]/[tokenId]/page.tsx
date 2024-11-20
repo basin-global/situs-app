@@ -20,6 +20,7 @@ import { SplitsBar } from '@/modules/splits/components/SplitsBar';
 
 // Add type for ensurance data
 type EnsuranceData = {
+  creator_reward_recipient: string;  // 0x address
   creator_reward_recipient_split: {
     recipients: Array<{
       percentAllocation: number;
@@ -28,7 +29,7 @@ type EnsuranceData = {
         ens?: string;
       }
     }>
-  }
+  };
 };
 
 // Add constant for description character limit

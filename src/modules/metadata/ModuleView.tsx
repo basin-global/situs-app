@@ -30,7 +30,7 @@ export function ModuleView({ contract, tokenId }: ModuleViewProps) {
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [ogIcon, setOgIcon] = useState<string | null>(null);
+  const [ogIcon, setOgIcon] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     async function fetchAccount() {
@@ -41,6 +41,10 @@ export function ModuleView({ contract, tokenId }: ModuleViewProps) {
         setAccount({
           tba_address: data.tba_address,
           account_name: data.name,
+          token_id: parseInt(data.token_id),
+          created_at: data.created_at,
+          owner_of: data.owner_of,
+          description: data.description
         });
         setImageUrl(data.image);
         if (data.og_name) {

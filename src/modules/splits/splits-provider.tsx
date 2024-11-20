@@ -5,6 +5,11 @@ import { SplitsProvider } from '@0xsplits/splits-sdk-react'
 import { ReactNode } from 'react'
 import { getActiveChains } from '@/config/chains'
 
+const apiKey = process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY;
+if (!apiKey) {
+  throw new Error('NEXT_PUBLIC_IS_SPLITS_API_KEY is not defined');
+}
+
 // Create public clients for active chains
 const publicClients = Object.fromEntries(
   getActiveChains().map(chain => [
@@ -26,9 +31,9 @@ const publicClients = Object.fromEntries(
 const splitsConfig = {
   chainIds: getActiveChains().map(chain => chain.id),
   publicClients,
-  includeEnsNames: false, // Optional: set to true if you want ENS names
+  includeEnsNames: false,
   apiConfig: {
-    apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY // Required for data client
+    apiKey
   }
 }
 

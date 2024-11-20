@@ -13,27 +13,44 @@ interface EnsuranceNFT {
   video_url?: string;
   chain: string;
   mime_type?: string;
+  uniqueId: string;
 }
 
 export default function EnsurancePreview({ contractAddress, og }: EnsurancePreviewProps) {
   const [nfts, setNfts] = useState<EnsuranceNFT[]>([])
 
   useEffect(() => {
+    setNfts([]);
+
     Promise.all([
       fetch(`/api/getEnsurance?chain=base`),
       fetch(`/api/getEnsurance?chain=arbitrum`)
     ])
       .then(([baseRes, arbRes]) => Promise.all([baseRes.json(), arbRes.json()]))
       .then(([baseData, arbData]) => {
-        const allNfts = [
-          ...(baseData || []).slice(0, 10),
-          ...(arbData || []).slice(0, 10)
-        ].sort((a, b) => Number(b.token_id) - Number(a.token_id))
-        .slice(0, 20)
+        const baseNfts = (baseData || []).map((nft: Omit<EnsuranceNFT, 'uniqueId'>) => ({
+          ...nft,
+          uniqueId: `base-${nft.token_id}`,
+          chain: 'base'
+        }));
+        
+        const arbNfts = (arbData || []).map((nft: Omit<EnsuranceNFT, 'uniqueId'>) => ({
+          ...nft,
+          uniqueId: `arbitrum-${nft.token_id}`,
+          chain: 'arbitrum'
+        }));
 
-        setNfts(allNfts)
+        const allNfts = [...baseNfts, ...arbNfts]
+          .sort((a, b) => Number(b.token_id) - Number(a.token_id))
+          .slice(0, 20);
+
+        setNfts(allNfts);
       })
-  }, [])
+      .catch(error => {
+        console.error('Error fetching ensurance:', error);
+        setNfts([]);
+      });
+  }, [og])
 
   return (
     <div className="bg-muted/50 dark:bg-muted-dark/50 rounded-xl p-8 backdrop-blur-sm">
@@ -60,7 +77,7 @@ export default function EnsurancePreview({ contractAddress, og }: EnsurancePrevi
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {nfts.map((nft) => (
           <Link
-            key={nft.token_id}
+            key={nft.uniqueId}
             href={`/${og}/ensurance/all`}
             className="group block"
           >
