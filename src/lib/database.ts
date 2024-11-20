@@ -697,7 +697,7 @@ const splitsClients = {
     publicClient: chainClients.base as any,
     includeEnsNames: false,
     apiConfig: {
-      apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
+      apiKey: process.env.NEXT_PUBLIC_SPLITS_API_KEY || ''
     }
   }).dataClient,
 
@@ -706,7 +706,7 @@ const splitsClients = {
     publicClient: chainClients.optimism as any,
     includeEnsNames: false,
     apiConfig: {
-      apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
+      apiKey: process.env.NEXT_PUBLIC_SPLITS_API_KEY || ''
     }
   }).dataClient,
 
@@ -715,7 +715,7 @@ const splitsClients = {
     publicClient: chainClients.arbitrum as any,
     includeEnsNames: false,
     apiConfig: {
-      apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
+      apiKey: process.env.NEXT_PUBLIC_SPLITS_API_KEY || ''
     }
   }).dataClient,
 
@@ -724,7 +724,7 @@ const splitsClients = {
     publicClient: chainClients.zora as any,
     includeEnsNames: false,
     apiConfig: {
-      apiKey: process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY || ''
+      apiKey: process.env.NEXT_PUBLIC_SPLITS_API_KEY || ''
     }
   }).dataClient
 };

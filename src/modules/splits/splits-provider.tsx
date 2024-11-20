@@ -5,11 +5,6 @@ import { SplitsProvider } from '@0xsplits/splits-sdk-react'
 import { ReactNode } from 'react'
 import { getActiveChains } from '@/config/chains'
 
-const apiKey = process.env.NEXT_PUBLIC_IS_SPLITS_API_KEY;
-if (!apiKey) {
-  throw new Error('NEXT_PUBLIC_IS_SPLITS_API_KEY is not defined');
-}
-
 // Create public clients for active chains
 const publicClients = Object.fromEntries(
   getActiveChains().map(chain => [
@@ -33,7 +28,7 @@ const splitsConfig = {
   publicClients,
   includeEnsNames: false,
   apiConfig: {
-    apiKey
+    apiKey: process.env.NEXT_PUBLIC_SPLITS_API_KEY || ''
   }
 }
 
@@ -42,6 +37,10 @@ interface SplitsWrapperProps {
 }
 
 export function SplitsWrapper({ children }: SplitsWrapperProps) {
+  if (!process.env.NEXT_PUBLIC_SPLITS_API_KEY) {
+    console.warn('Warning: NEXT_PUBLIC_SPLITS_API_KEY is not defined. Some features may be limited.');
+  }
+
   return (
     <SplitsProvider config={splitsConfig}>
       {children}
