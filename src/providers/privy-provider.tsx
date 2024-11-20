@@ -2,13 +2,24 @@
 
 import { PrivyProvider } from '@privy-io/react-auth';
 import { supportedChains, getActiveChains } from '@/config/chains';
+import { useEffect, useState } from 'react';
 
 export function PrivyProviderWrapper({ children }: { children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
   const activeChains = getActiveChains();
   const baseChain = supportedChains.find(chain => chain.id === 8453); // Base
 
   if (!baseChain) {
     console.error('Base chain not found in supported chains');
+  }
+
+  // Only render provider after component mounts
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
   }
 
   return (

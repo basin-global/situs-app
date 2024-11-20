@@ -11,14 +11,42 @@ import { SubNavigation } from '@/components/sub-navigation';
 export default function MyEnsurancePage() {
   const { currentOG } = useOG();
   const [selectedChain, setSelectedChain] = useState('base');
+  const { user, login } = usePrivy();
   const { wallets } = useWallets();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Get the connected address
   const connectedAddress = wallets?.[0]?.address;
 
   if (!currentOG) {
-    return null;
+    return <div>Loading...</div>;
+  }
+
+  if (!user?.wallet?.address) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="mb-8 flex justify-center">
+          <SubNavigation type="ensurance" />
+        </div>
+        
+        <div className="text-center">
+          <h2 className="text-5xl font-mono font-bold mb-8">
+            <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-500 text-transparent bg-clip-text">
+              My Certificates
+            </span>
+          </h2>
+          
+          <div className="p-8 rounded-lg bg-gray-100 dark:bg-gray-800 max-w-md mx-auto">
+            <p className="text-lg mb-4">Please login to view your certificates</p>
+            <button
+              onClick={login}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition duration-200"
+            >
+              Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

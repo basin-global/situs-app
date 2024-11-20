@@ -28,28 +28,36 @@ export default function Footer() {
   const [ethPrice, setEthPrice] = useState<number | null>(null)
 
   useEffect(() => {
-    // Always set dark mode on initial load
-    document.documentElement.classList.add('dark')
-    localStorage.setItem('darkMode', 'true')
+    // Separate dark mode initialization from ETH price logic
+    const isDarkMode = localStorage.getItem('darkMode') === 'true'
+    if (isDarkMode || isDarkMode === null) { // Default to dark if not set
+      document.documentElement.classList.add('dark')
+      setDarkMode(true)
+    } else {
+      document.documentElement.classList.remove('dark')
+      setDarkMode(false)
+    }
+
+    // ETH price fetching logic
+    const fetchEthPrice = async () => {
+      try {
+        const response = await fetch('/api/eth-price')
+        const data = await response.json()
+        if (data.price) {
+          setEthPrice(data.price)
+        }
+      } catch (error) {
+        console.error('Error fetching ETH price:', error)
+      }
+    }
 
     if (authenticated) {
-      // Fetch ETH price
-      const fetchEthPrice = async () => {
-        try {
-          const response = await fetch('/api/eth-price')
-          const data = await response.json()
-          if (data.price) {
-            setEthPrice(data.price)
-          }
-        } catch (error) {
-          console.error('Error fetching ETH price:', error)
-        }
-      }
-
       fetchEthPrice()
-      // Optionally, set up an interval to update the price periodically
-      const interval = setInterval(fetchEthPrice, 5 * 60 * 1000) // Update every minute
-
+      const interval = setInterval(() => {
+        if (authenticated) {
+          fetchEthPrice()
+        }
+      }, 60000)
       return () => clearInterval(interval)
     }
   }, [authenticated])

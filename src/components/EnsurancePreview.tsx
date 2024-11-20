@@ -3,31 +3,31 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { ensuranceContracts } from '@/modules/ensurance/config'
 import { EnsurancePreviewProps } from '@/types';
 
-interface SimpleHashNFT {
-  nft_id: string;
+interface EnsuranceNFT {
   token_id: string;
   name: string;
+  description: string;
   image_url: string;
   video_url?: string;
   chain: string;
+  mime_type?: string;
 }
 
 export default function EnsurancePreview({ contractAddress, og }: EnsurancePreviewProps) {
-  const [nfts, setNfts] = useState<SimpleHashNFT[]>([])
+  const [nfts, setNfts] = useState<EnsuranceNFT[]>([])
 
   useEffect(() => {
     Promise.all([
-      fetch(`/api/simplehash/nft?chain=base&contractAddress=${ensuranceContracts.base}`),
-      fetch(`/api/simplehash/nft?chain=arbitrum&contractAddress=${ensuranceContracts.arbitrum}`)
+      fetch(`/api/getEnsurance?chain=base`),
+      fetch(`/api/getEnsurance?chain=arbitrum`)
     ])
       .then(([baseRes, arbRes]) => Promise.all([baseRes.json(), arbRes.json()]))
       .then(([baseData, arbData]) => {
         const allNfts = [
-          ...(baseData.nfts || []).slice(0, 10),
-          ...(arbData.nfts || []).slice(0, 10)
+          ...(baseData || []).slice(0, 10),
+          ...(arbData || []).slice(0, 10)
         ].sort((a, b) => Number(b.token_id) - Number(a.token_id))
         .slice(0, 20)
 
@@ -60,8 +60,8 @@ export default function EnsurancePreview({ contractAddress, og }: EnsurancePrevi
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
         {nfts.map((nft) => (
           <Link
-            key={nft.nft_id}
-            href={`/${og}/ensurance`}
+            key={nft.token_id}
+            href={`/${og}/ensurance/all`}
             className="group block"
           >
             <div className="aspect-square relative rounded-lg overflow-hidden bg-black/5 transition-transform duration-300 group-hover:scale-105 mb-2">

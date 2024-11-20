@@ -115,7 +115,7 @@ export interface OG {
     }>;
   }
 
-  export type EnsureOperation = 'send' | 'buy' | 'sell' | 'convert' | 'ensure' | 'hide' | 'burn' | 'swap';
+  export type EnsureOperation = 'send' | 'buy' | 'sell' | 'convert' | 'ensure' | 'hide' | 'burn' | 'swap' | 'profile';
 
   export interface EnsureModalProps {
     isOpen: boolean;

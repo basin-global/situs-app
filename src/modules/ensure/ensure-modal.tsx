@@ -34,6 +34,8 @@ export function EnsureModal({
   operation,
   isTokenbound = true
 }: EnsureModalProps) {
+  console.log('Asset in modal:', asset);
+
   const operationConfig: Record<EnsureOperation, OperationConfig> = {
     ensure: {
       title: 'Ensure Asset',
@@ -54,10 +56,12 @@ export function EnsureModal({
       comingSoonMessage: 'Convert functionality coming soon'
     },
     buy: {
-      title: 'Buy Asset',
-      description: 'Purchase this asset',
+      title: 'Buy Currency',
+      description: asset?.description || 'Get this currency on an exchange',
       actionButton: 'Buy',
-      comingSoonMessage: 'Buy functionality coming soon'
+      comingSoonMessage: asset?.symbol === 'ETH' || asset?.symbol === 'USDC' || asset?.symbol === 'USDS' 
+        ? 'Available on Coinbase'
+        : 'Available on Uniswap'
     },
     sell: {
       title: 'Sell Asset',
@@ -85,6 +89,12 @@ export function EnsureModal({
       actionButton: 'Burn',
       comingSoonMessage: 'Burn functionality coming soon',
       isDangerous: true
+    },
+    profile: {
+      title: 'Account Settings',
+      description: 'Manage your account profile and appearance',
+      actionButton: 'Save Changes',
+      comingSoonMessage: 'Profile management features coming soon'
     }
   };
 
@@ -100,12 +110,20 @@ export function EnsureModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="bg-gray-900 border border-gray-800 shadow-lg max-w-md">
+      <DialogContent 
+        className={`bg-gray-900 border border-gray-800 shadow-lg ${
+          operation === 'profile' ? 'max-w-2xl max-h-[85vh] overflow-y-auto' : 'max-w-md'
+        }`}
+        aria-describedby={`${operation}-description`}
+      >
         <DialogHeader className="border-b border-gray-800 pb-4">
           <DialogTitle className="text-xl font-bold text-gray-100">
             {currentConfig.title}
           </DialogTitle>
-          <p className="text-sm text-gray-400 mt-1">
+          <p 
+            className="text-sm text-gray-400 mt-1"
+            id={`${operation}-description`}
+          >
             {currentConfig.description}
           </p>
         </DialogHeader>
@@ -114,7 +132,13 @@ export function EnsureModal({
         <div className="py-4">
           <div className="flex items-center gap-4 bg-gray-800 p-4 rounded-lg">
             <div className="w-16 h-16 flex items-center justify-center bg-gray-700 rounded-lg">
-              {asset?.symbol ? (
+              {operation === 'buy' ? (
+                <img 
+                  src={asset.image_url} 
+                  alt={asset.name || 'Currency'} 
+                  className="object-cover w-full h-full rounded-lg"
+                />
+              ) : asset?.symbol ? (
                 <span className="text-2xl font-bold text-gray-100">
                   {asset.symbol}
                 </span>
@@ -129,10 +153,9 @@ export function EnsureModal({
               )}
             </div>
             <div>
-              {/* Only show collection name or chain info here */}
-              {asset?.collection?.name && (
+              {asset?.name && (
                 <p className="text-sm text-gray-400">
-                  {asset.collection.name}
+                  {asset.name}
                 </p>
               )}
             </div>
@@ -157,6 +180,70 @@ export function EnsureModal({
               Burning an asset is permanent and irreversible. 
               This action cannot be undone.
             </p>
+          </div>
+        )}
+
+        {/* Profile Management Section - Only show for profile operation */}
+        {operation === 'profile' && (
+          <div className="space-y-4">
+            {/* Image Management */}
+            <div className="border border-gray-700 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-gray-200">Account Image</h3>
+                <div className="flex gap-2">
+                  <button className="px-3 py-1 text-sm bg-blue-600/30 text-blue-400 rounded hover:bg-blue-600/40 transition-colors">
+                    Change
+                  </button>
+                  <button className="px-3 py-1 text-sm bg-red-600/30 text-red-400 rounded hover:bg-red-600/40 transition-colors">
+                    Remove
+                  </button>
+                </div>
+              </div>
+              <div className="bg-gray-700/50 rounded-lg p-2 flex items-center justify-center">
+                <div className="w-24 h-24 relative rounded-lg overflow-hidden">
+                  {asset.image_url && (
+                    <img 
+                      src={asset.image_url}
+                      alt="Account Image"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Image failed to load:', asset.image_url);
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  {!asset.image_url && (
+                    <div className="w-full h-full bg-gray-600 flex items-center justify-center">
+                      <span className="text-gray-400">No Image</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Description Management */}
+            <div className="border border-gray-700 rounded-lg p-3">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-lg font-semibold text-gray-200">Description</h3>
+                <div className="flex gap-2">
+                  <button className="px-3 py-1 text-sm bg-blue-600/30 text-blue-400 rounded hover:bg-blue-600/40 transition-colors">
+                    Edit
+                  </button>
+                  <button className="px-3 py-1 text-sm bg-red-600/30 text-red-400 rounded hover:bg-red-600/40 transition-colors">
+                    Clear
+                  </button>
+                </div>
+              </div>
+              <div className="bg-gray-700/50 rounded-lg p-2">
+                <p className="text-sm text-gray-400">
+                  {asset.description || 'No description set'}
+                </p>
+              </div>
+            </div>
+
+            <div className="text-center text-sm text-amber-500 py-2">
+              {currentConfig.comingSoonMessage}
+            </div>
           </div>
         )}
 

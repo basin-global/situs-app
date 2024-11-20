@@ -30,8 +30,32 @@ export default function ProfilePage() {
   const { ready, authenticated, user, logout, login } = usePrivy();
   const { OGs } = useOG();
   const [searchQuery, setSearchQuery] = useState('');
+  const [isSimpleHashLoaded, setIsSimpleHashLoaded] = useState(false);
 
-  console.log('Profile Page - OG Context:', useOG());
+  // Listen for SimpleHash data load
+  useEffect(() => {
+    if (authenticated && user?.wallet?.address) {
+      // First, wait for SimpleHash data
+      const checkSimpleHash = async () => {
+        try {
+          const contractAddresses = OGs?.map(og => og.contract_address).join(',');
+          const walletAddress = user?.wallet?.address;
+          if (!walletAddress) return;
+          
+          const response = await fetch(`/api/simplehash/accounts?address=${walletAddress}&contractAddress=${contractAddresses}`);
+          const data = await response.json();
+          if (data.nfts) {
+            // Once SimpleHash data is loaded, set the state
+            setIsSimpleHashLoaded(true);
+          }
+        } catch (error) {
+          console.error('Error checking SimpleHash:', error);
+        }
+      };
+
+      checkSimpleHash();
+    }
+  }, [authenticated, user?.wallet?.address, OGs]);
 
   console.log('Profile Page - Initial Render:', {
     authenticated,
@@ -39,7 +63,8 @@ export default function ProfilePage() {
     walletAddress: user?.wallet?.address,
     hasOGs: !!OGs,
     ogsCount: OGs?.length,
-    OGs
+    OGs,
+    isSimpleHashLoaded
   });
 
   if (!ready) {
@@ -94,7 +119,13 @@ export default function ProfilePage() {
           isAccountSearch={true}
         />
 
-        <MyAccounts searchQuery={searchQuery} />
+        {isSimpleHashLoaded ? (
+          <MyAccounts searchQuery={searchQuery} />
+        ) : (
+          <div className="text-center py-8">
+            <p className="text-lg text-gray-400">Loading accounts...</p>
+          </div>
+        )}
       </div>
 
       {/* Profile Section */}

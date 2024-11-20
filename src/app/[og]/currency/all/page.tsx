@@ -28,21 +28,21 @@ const currencies = [
     id: 'ensure',
     name: 'Ensure',
     symbol: 'ENSURE',
-    description: 'Native token of the Situs Protocol',
+    description: 'Nature-based currency that ensures the stocks and flows of natural capital',
     image: '/assets/currencies/ensure.png'
   },
   {
-    id: 'dai',
-    name: 'Dai',
-    symbol: 'DAI',
-    description: 'Decentralized stablecoin pegged to USD',
-    image: '/assets/currencies/dai.png'
+    id: 'usds',
+    name: 'USDS',
+    symbol: 'USDS',
+    description: 'Decentralized stablecoin by Spark Protocol (formerly Maker)',
+    image: '/assets/currencies/usds.png'
   },
   {
     id: 'earth',
     name: 'Earth',
     symbol: 'EARTH',
-    description: 'Carbon credit backed token',
+    description: 'Digital currency backed by climate solutions, ecosystem services and solarpunk values',
     image: '/assets/currencies/earth.png'
   },
   {
@@ -87,9 +87,15 @@ export default function AllCurrencyPage() {
 
       <h2 className="text-5xl font-mono font-bold mb-4 text-center">
         <span className="bg-gradient-to-r from-yellow-200 via-yellow-300 to-yellow-500 text-transparent bg-clip-text">
-          Featured Currencies
+          Impact Currencies
         </span>
       </h2>
+
+      <div className="text-center mb-8 max-w-2xl mx-auto">
+        <p className="text-gray-400">
+          A curated selection of currencies that align financial value with environmental and social impact
+        </p>
+      </div>
 
       <div className="mb-6 flex justify-center">
         <AssetSearch 
@@ -127,24 +133,32 @@ export default function AllCurrencyPage() {
         ))}
       </div>
 
-      {/* Coming Soon Notice */}
-      <div className="mt-8 text-center text-gray-400">
-        <p>Currency features coming soon...</p>
-      </div>
-
       {/* Ensure Modal */}
       {showEnsureModal && selectedCurrency && (
         <EnsureModal
           isOpen={showEnsureModal}
           onClose={() => setShowEnsureModal(false)}
-          operation="ensure"
+          operation="buy"
           asset={{
             chain: 'base',
             contract_address: '0x...',
             token_id: '1',
-            name: selectedCurrency.name
+            name: selectedCurrency.name,
+            symbol: selectedCurrency.symbol,
+            description: selectedCurrency.description,
+            image_url: selectedCurrency.image,
+            collection: {
+              name: selectedCurrency.name
+            },
+            contract: {
+              type: 'ERC20'
+            }
           }}
           isTokenbound={false}
+          address={selectedCurrency.id}
+          onAction={async () => {
+            return { hash: '', isCrossChain: false };
+          }}
         />
       )}
     </div>

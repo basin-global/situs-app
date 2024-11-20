@@ -24,7 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <PrivyProviderWrapper>
           <SplitsWrapper>
             <OGProvider>
-              {process.env.NEXT_PUBLIC_IS_STAGING === 'true' && <AnnouncementBanner />}
+              <AnnouncementBanner />
               <Header />
               <ToastContainer />
               <main className="flex-grow">

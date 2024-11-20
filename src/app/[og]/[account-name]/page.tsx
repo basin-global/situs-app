@@ -14,6 +14,8 @@ import { base } from 'viem/chains';
 import SitusOGAbi from '@/abi/SitusOG.json';
 import { useSearchParams } from 'next/navigation';
 import AccountImage from '@/components/AccountImage';
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { EnsureModal } from '@/modules/ensure/ensure-modal';
 
 const publicClient = createPublicClient({
   chain: base,
@@ -39,6 +41,8 @@ export default function AccountPage({ params }: { params: { og: string; 'account
   const { wallets } = useWallets();
   const [isOwner, setIsOwner] = useState<boolean>(false);
   const { authenticated, user } = usePrivy();
+  const [showFullImage, setShowFullImage] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   useEffect(() => {
     async function fetchAccount() {
@@ -187,38 +191,62 @@ export default function AccountPage({ params }: { params: { og: string; 'account
           </div>
 
           <div className="bg-white dark:bg-gray-800 rounded-none lg:rounded-lg shadow-md p-0 md:p-4 w-full">
-            <div className="relative group px-4 md:px-0 py-2">
+            <div className="relative max-w-3xl mx-auto group/main px-4 md:px-0 py-2">
               <div className="flex-1">
                 {account.tba_address ? (
-                  <p 
-                    className="text-sm font-space-mono cursor-pointer text-center mb-1 opacity-0 group-hover:opacity-70 transition-opacity duration-300 delay-300 text-gray-600 dark:text-gray-400"
+                  <div 
                     onClick={() => copyToClipboard(account.tba_address!)}
+                    className="cursor-pointer text-center py-2 hover:bg-gray-700/10 rounded-lg transition-colors"
                   >
-                    {account.tba_address}
-                  </p>
+                    <p className="text-sm font-mono text-gray-600 dark:text-gray-400 opacity-0 group-hover/main:opacity-70 transition-opacity duration-300 delay-300">
+                      {account.tba_address}
+                    </p>
+                  </div>
                 ) : (
-                  <p className="text-sm font-space-mono text-center mb-1 text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-mono text-center mb-1 text-gray-600 dark:text-gray-400">
                     TBA address not available
                   </p>
                 )}
+
                 <div className="flex items-center justify-center">
                   <div className="flex items-center gap-4">
-                    <div className="h-24 w-24 flex-shrink-0">
-                      <AccountImage tokenId={account.token_id} />
+                    <div className="h-24 w-24 flex-shrink-0 relative">
+                      <div 
+                        onClick={() => setShowFullImage(true)}
+                        className="cursor-pointer group/image"
+                      >
+                        <AccountImage tokenId={account.token_id} />
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover/image:bg-opacity-30 transition-all duration-200 rounded-full flex items-center justify-center">
+                          <svg 
+                            className="w-6 h-6 text-white opacity-0 group-hover/image:opacity-100 transition-opacity duration-200"
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path 
+                              strokeLinecap="round" 
+                              strokeLinejoin="round" 
+                              strokeWidth={2} 
+                              d="M4 8V4m0 0h4M4 4l5 5m11-5V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" 
+                            />
+                          </svg>
+                        </div>
+                      </div>
                     </div>
+
                     <div className="flex flex-col gap-1">
                       <div className="flex items-center gap-2">
                         <h1 
-                          className={`text-3xl md:text-5xl font-bold cursor-pointer ${
+                          className={`text-3xl md:text-5xl font-bold ${
                             isOwner ? 'bg-clip-text text-transparent bg-gradient-to-r from-amber-300 via-yellow-500 to-amber-600' : ''
                           }`}
-                          onClick={() => account.tba_address && copyToClipboard(account.tba_address)}
                         >
                           {`${decodeURIComponent(account_name)}${currentOG?.og_name}`}
                         </h1>
                         {isOwner && (
                           <div 
-                            className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-500 flex-shrink-0"
+                            onClick={() => setShowProfileModal(true)}
+                            className="w-2 h-2 md:w-3 md:h-3 rounded-full bg-green-500 flex-shrink-0 cursor-pointer group/owner"
                             title="You own this account"
                           />
                         )}
@@ -231,10 +259,13 @@ export default function AccountPage({ params }: { params: { og: string; 'account
                     </div>
                   </div>
                 </div>
+
                 {ensName && (
-                  <p className="text-sm text-center opacity-0 group-hover:opacity-70 transition-opacity duration-300 delay-300 text-gray-600 dark:text-gray-400">
-                    {ensName}
-                  </p>
+                  <div className="text-center py-2">
+                    <p className="text-sm opacity-0 group-hover/main:opacity-70 transition-opacity duration-300 delay-300 text-gray-600 dark:text-gray-400">
+                      {ensName}
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
@@ -253,10 +284,56 @@ export default function AccountPage({ params }: { params: { og: string; 'account
           </div>
 
           <div className={`mt-4 transition-opacity duration-1000 ease-in-out ${showOnchainData ? 'opacity-100' : 'opacity-0'} px-4 lg:px-0`}>
-            {showOnchainData && <AccountContractInfo token_id={parseInt(account.token_id, 10)} />}
+            {showOnchainData && <AccountContractInfo token_id={account.token_id} />}
           </div>
         </div>
       </div>
+      <Dialog open={showFullImage} onOpenChange={setShowFullImage}>
+        <DialogContent 
+          className="max-w-[80vh] max-h-[80vh] p-0 bg-black/95 border-gray-800"
+          aria-describedby="account-image-fullscreen"
+        >
+          <DialogTitle className="sr-only">
+            Account Image
+          </DialogTitle>
+          <div 
+            className="relative w-full h-full flex items-center justify-center p-2"
+            id="account-image-fullscreen"
+          >
+            <div className="relative w-full h-full flex items-center justify-center">
+              <AccountImage 
+                tokenId={account.token_id} 
+                variant="square" 
+                className="w-full h-full !rounded-lg"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Profile Settings Modal */}
+      {isOwner && showProfileModal && (
+        <EnsureModal
+          isOpen={showProfileModal}
+          onClose={() => setShowProfileModal(false)}
+          operation="profile"
+          asset={{
+            chain: 'base',
+            contract_address: currentOG?.contract_address || '',
+            token_id: account.token_id.toString(),
+            name: `${decodeURIComponent(account_name)}${currentOG?.og_name}`,
+            description: account.description || 'No description set',
+            image_url: `${process.env.NEXT_PUBLIC_BLOB_URL}/${currentOG?.og_name?.replace('.', '')}/${account.token_id}.png`,
+            collection: {
+              name: currentOG?.og_name || ''
+            }
+          }}
+          isTokenbound={true}
+          address={account.tba_address || ''}
+          onAction={async () => {
+            return { hash: '', isCrossChain: false };
+          }}
+        />
+      )}
     </div>
   );
 }
