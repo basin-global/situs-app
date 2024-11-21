@@ -11,17 +11,10 @@ export async function GET(
   try {
     console.log('Metadata request for:', params);
     
+    // Force bypass cache for the metadata fetch
     const metadata = await getMetadata(params.contract, params.tokenId);
-    console.log('Got metadata:', metadata);
     
-    // Generate the image with text overlay
-    console.log('Generating image with:', {
-      baseImage: metadata.image,
-      name: metadata.name,
-      ogName: metadata.og_name,
-      tokenId: params.tokenId
-    });
-
+    // Generate new image every time
     const generatedImageUrl = await generateAccountImage(
       metadata.image,
       metadata.name,
@@ -29,14 +22,18 @@ export async function GET(
       params.tokenId
     );
 
-    console.log('Generated image URL:', generatedImageUrl);
-
+    // Return with strong no-cache headers
     return new Response(JSON.stringify({
       ...metadata,
-      image: generatedImageUrl
+      image: generatedImageUrl,
+      // Add cache buster to image URL
+      cached_at: Date.now()
     }), {
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
       },
     });
   } catch (error) {

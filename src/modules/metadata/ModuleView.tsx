@@ -64,13 +64,15 @@ export function ModuleView({ contract, tokenId }: ModuleViewProps) {
   return (
     <div className="w-full h-full relative">
       {imageUrl && (
-        <img 
-          src={imageUrl} 
-          alt={account?.account_name || 'Account Image'}
-          className={`w-full h-full object-cover transition-all duration-300 ${
-            isPanelOpen ? 'blur-sm' : ''
-          }`}
-        />
+        <>
+          <img 
+            src={imageUrl} 
+            alt={account?.account_name || 'Account Image'}
+            className={`w-full h-full object-cover transition-all duration-300 ${
+              isPanelOpen ? 'blur-lg' : ''
+            }`}
+          />
+        </>
       )}
 
       <div className="absolute top-4 left-4 flex items-center gap-3 z-50">

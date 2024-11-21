@@ -31,6 +31,14 @@ export default function MetadataAssets({ address, selectedChain }: MetadataAsset
     return <div className="p-4 text-gray-400">Loading assets...</div>;
   }
 
+  if (assets.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-[200px]">
+        <div className="text-gray-400">No assets found on {selectedChain}</div>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-4">
       {assets.map((asset) => (

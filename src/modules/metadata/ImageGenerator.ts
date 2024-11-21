@@ -1,5 +1,7 @@
 import sharp from 'sharp';
 import { put } from '@vercel/blob';
+import fs from 'fs/promises';
+import path from 'path';
 
 interface ImageStyle {
   fontSize: number;
@@ -11,11 +13,11 @@ interface ImageStyle {
 }
 
 const DEFAULT_STYLE: ImageStyle = {
-  fontSize: 48,
+  fontSize: 64,
   color: '#FFFFFF',
   position: {
-    x: 50,  // percentage from left
-    y: 85   // percentage from top
+    x: 50,
+    y: 75
   }
 };
 
@@ -35,6 +37,14 @@ function escapeXml(unsafe: string): string {
 export const dynamic = 'force-dynamic'; // Disable caching
 export const fetchCache = 'force-no-store'; // Disable fetch caching
 
+// Updated wrap function to break at hyphens
+function wrapText(text: string): string[] {
+  // Split at hyphens but keep the hyphen with the first part
+  return text.split('-').map((part, i, arr) => 
+    i < arr.length - 1 ? part + '-' : part
+  );
+}
+
 export async function generateAccountImage(
   baseImageUrl: string,
   accountName: string,
@@ -43,7 +53,6 @@ export async function generateAccountImage(
   style: Partial<ImageStyle> = {}
 ): Promise<string> {
   try {
-    // Merge default style with any custom style
     const finalStyle = { ...DEFAULT_STYLE, ...style };
 
     // Load the base image with just no-store
@@ -58,32 +67,74 @@ export async function generateAccountImage(
       throw new Error('Could not get image dimensions');
     }
 
-    // Create a gradient overlay SVG
+    // Create a more focused gradient overlay SVG
     const gradientOverlay = Buffer.from(`
       <svg width="${metadata.width}" height="${metadata.height}" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          <linearGradient id="overlay" x1="0%" y1="70%" x2="0%" y2="100%">
-            <stop offset="0%" stop-color="rgba(0,0,0,0)" />
-            <stop offset="100%" stop-color="rgba(0,0,0,0.7)" />
-          </linearGradient>
+          <radialGradient id="overlay" cx="50%" cy="${finalStyle.position.y}%" r="50%" fx="50%" fy="${finalStyle.position.y}%">
+            <stop offset="0%" stop-color="rgba(0,0,0,0.6)" />
+            <stop offset="60%" stop-color="rgba(0,0,0,0.2)" />
+            <stop offset="100%" stop-color="rgba(0,0,0,0)" />
+          </radialGradient>
         </defs>
-        <rect width="${metadata.width}" height="${metadata.height}" fill="url(#overlay)" />
+        <rect 
+          x="0" 
+          y="${metadata.height * (finalStyle.position.y/100 - 0.2)}" 
+          width="${metadata.width}" 
+          height="${metadata.height * 0.4}" 
+          fill="url(#overlay)" 
+        />
       </svg>
     `);
 
-    // Create text SVG with escaped text
+    const wrappedLines = wrapText(accountName);
+
     const textOverlay = Buffer.from(`
       <svg width="${metadata.width}" height="${metadata.height}" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <filter id="shadow">
+            <feDropShadow dx="0" dy="1" stdDeviation="0" flood-opacity="1" flood-color="rgba(0,0,0,0.7)"/>
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.8"/>
+            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.5"/>
+          </filter>
+          <linearGradient id="textBackground" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:rgba(0,0,0,0.4)" />
+            <stop offset="100%" style="stop-color:rgba(0,0,0,0.6)" />
+          </linearGradient>
+        </defs>
+        
+        <!-- Text backdrop for better contrast -->
+        <rect
+          x="${(metadata.width! * finalStyle.position.x) / 100 - metadata.width! * 0.4}"
+          y="${(metadata.height! * finalStyle.position.y) / 100 - finalStyle.fontSize}"
+          width="${metadata.width! * 0.8}"
+          height="${finalStyle.fontSize * wrappedLines.length * 1.5}"
+          rx="5"
+          fill="url(#textBackground)"
+          filter="blur(20px)"
+          opacity="0.7"
+        />
+
         <text 
-          x="${(metadata.width * finalStyle.position.x) / 100}" 
-          y="${(metadata.height * finalStyle.position.y) / 100}" 
-          font-family="sans-serif"
+          x="${(metadata.width! * finalStyle.position.x) / 100}" 
+          y="${(metadata.height! * finalStyle.position.y) / 100}" 
+          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif"
           font-size="${finalStyle.fontSize}"
+          font-weight="800"
           fill="${finalStyle.color}"
           text-anchor="middle"
           dominant-baseline="middle"
+          filter="url(#shadow)"
+          letter-spacing="0.05em"
+          style="text-transform: lowercase"
         >
-          ${escapeXml(accountName)}
+          ${wrappedLines.map((line, i) => 
+            `<tspan 
+              x="${(metadata.width! * finalStyle.position.x) / 100}" 
+              dy="${i === 0 ? 0 : finalStyle.fontSize * 1.2}"
+              letter-spacing="0.05em"
+            >${escapeXml(line)}</tspan>`
+          ).join('')}
         </text>
       </svg>
     `);
