@@ -55,10 +55,14 @@ export async function generateAccountImage(
   try {
     const finalStyle = { ...DEFAULT_STYLE, ...style };
 
-    // Load the base image with just no-store
     const imageResponse = await fetch(baseImageUrl, { 
       cache: 'no-store'
     });
+    
+    if (!imageResponse.ok) {
+      throw new Error(`Failed to fetch base image: ${imageResponse.status}`);
+    }
+
     const imageArrayBuffer = await imageResponse.arrayBuffer();
     const baseImage = await sharp(Buffer.from(imageArrayBuffer));
     const metadata = await baseImage.metadata();
@@ -67,16 +71,28 @@ export async function generateAccountImage(
       throw new Error('Could not get image dimensions');
     }
 
-    // Create a more focused gradient overlay SVG
-    const gradientOverlay = Buffer.from(`
+    // Create a combined overlay with both gradient and text
+    const wrappedLines = wrapText(accountName);
+    const combinedOverlay = Buffer.from(`
       <svg width="${metadata.width}" height="${metadata.height}" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <radialGradient id="overlay" cx="50%" cy="${finalStyle.position.y}%" r="50%" fx="50%" fy="${finalStyle.position.y}%">
-            <stop offset="0%" stop-color="rgba(0,0,0,0.6)" />
-            <stop offset="60%" stop-color="rgba(0,0,0,0.2)" />
+            <stop offset="0%" stop-color="rgba(0,0,0,0.8)" />
+            <stop offset="60%" stop-color="rgba(0,0,0,0.4)" />
             <stop offset="100%" stop-color="rgba(0,0,0,0)" />
           </radialGradient>
+          
+          <filter id="shadow">
+            <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="black" flood-opacity="0.8"/>
+          </filter>
+
+          <linearGradient id="textBackground" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" style="stop-color:rgba(0,0,0,0.8)" />
+            <stop offset="100%" style="stop-color:rgba(0,0,0,0.9)" />
+          </linearGradient>
         </defs>
+
+        <!-- Gradient overlay -->
         <rect 
           x="0" 
           y="${metadata.height * (finalStyle.position.y/100 - 0.2)}" 
@@ -84,58 +100,36 @@ export async function generateAccountImage(
           height="${metadata.height * 0.4}" 
           fill="url(#overlay)" 
         />
-      </svg>
-    `);
 
-    const wrappedLines = wrapText(accountName);
-
-    const textOverlay = Buffer.from(`
-      <svg width="${metadata.width}" height="${metadata.height}" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id="shadow">
-            <feDropShadow dx="0" dy="1" stdDeviation="0" flood-opacity="1" flood-color="rgba(0,0,0,0.7)"/>
-            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.8"/>
-            <feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity="0.5"/>
-          </filter>
-          <linearGradient id="textBackground" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:rgba(0,0,0,0.4)" />
-            <stop offset="100%" style="stop-color:rgba(0,0,0,0.6)" />
-          </linearGradient>
-        </defs>
-        
-        <!-- Text backdrop for better contrast -->
+        <!-- Text background -->
         <rect
           x="${(metadata.width! * finalStyle.position.x) / 100 - metadata.width! * 0.4}"
           y="${(metadata.height! * finalStyle.position.y) / 100 - finalStyle.fontSize}"
           width="${metadata.width! * 0.8}"
           height="${finalStyle.fontSize * wrappedLines.length * 1.5}"
-          rx="5"
+          rx="15"
           fill="url(#textBackground)"
-          filter="blur(20px)"
-          opacity="0.7"
+          filter="blur(8px)"
+          opacity="0.95"
         />
 
-        <text 
-          x="${(metadata.width! * finalStyle.position.x) / 100}" 
-          y="${(metadata.height! * finalStyle.position.y) / 100}" 
-          font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
-          font-size="${finalStyle.fontSize}"
-          font-weight="800"
-          fill="${finalStyle.color}"
-          text-anchor="middle"
-          dominant-baseline="middle"
-          filter="url(#shadow)"
-          letter-spacing="0.05em"
-          style="text-transform: lowercase"
-        >
-          ${wrappedLines.map((line, i) => 
-            `<tspan 
+        <!-- Text with shadow -->
+        <g filter="url(#shadow)">
+          ${wrappedLines.map((line, i) => `
+            <text 
               x="${(metadata.width! * finalStyle.position.x) / 100}" 
-              dy="${i === 0 ? 0 : finalStyle.fontSize * 1.2}"
+              y="${(metadata.height! * finalStyle.position.y) / 100 + (i * finalStyle.fontSize * 1.2)}" 
+              font-family="Arial Black, Arial, sans-serif"
+              font-size="${finalStyle.fontSize}"
+              font-weight="900"
+              fill="${finalStyle.color}"
+              text-anchor="middle"
+              dominant-baseline="middle"
               letter-spacing="0.05em"
-            >${escapeXml(line)}</tspan>`
-          ).join('')}
-        </text>
+              style="text-transform: lowercase"
+            >${escapeXml(line)}</text>
+          `).join('')}
+        </g>
       </svg>
     `);
 
@@ -143,12 +137,7 @@ export async function generateAccountImage(
     const buffer = await baseImage
       .composite([
         {
-          input: gradientOverlay,
-          top: 0,
-          left: 0,
-        },
-        {
-          input: textOverlay,
+          input: combinedOverlay,
           top: 0,
           left: 0,
         }
@@ -156,13 +145,14 @@ export async function generateAccountImage(
       .png()
       .toBuffer();
 
-    // Store in blob storage under generated folder
+    // Store in blob storage
     const { url } = await put(
       `${ogName}/generated/${tokenId}.png`,
       buffer,
       { access: 'public', addRandomSuffix: false }
     );
 
+    console.log('Generated image URL:', url);
     return url;
 
   } catch (error) {
