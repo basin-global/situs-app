@@ -11,10 +11,8 @@ export async function GET(
   try {
     console.log('Metadata request for:', params);
     
-    // Force bypass cache for the metadata fetch
     const metadata = await getMetadata(params.contract, params.tokenId);
     
-    // Generate new image every time
     const generatedImageUrl = await generateAccountImage(
       metadata.image,
       metadata.name,
@@ -22,11 +20,10 @@ export async function GET(
       params.tokenId
     );
 
-    // Return with strong no-cache headers
     return new Response(JSON.stringify({
       ...metadata,
       image: generatedImageUrl,
-      // Add cache buster to image URL
+      animation_url: `https://ensitus.xyz/metadata/${params.contract}/${params.tokenId}`,
       cached_at: Date.now()
     }), {
       headers: {

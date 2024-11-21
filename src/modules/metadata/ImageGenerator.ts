@@ -118,7 +118,7 @@ export async function generateAccountImage(
         <text 
           x="${(metadata.width! * finalStyle.position.x) / 100}" 
           y="${(metadata.height! * finalStyle.position.y) / 100}" 
-          font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, sans-serif"
+          font-family="'Helvetica Neue', Helvetica, Arial, sans-serif"
           font-size="${finalStyle.fontSize}"
           font-weight="800"
           fill="${finalStyle.color}"
