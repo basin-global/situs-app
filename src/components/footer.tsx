@@ -45,11 +45,6 @@ export default function Footer() {
     }
   }, [authenticated])
 
-  // Move metadata check after hooks
-  if (pathname.startsWith('/metadata')) {
-    return null
-  }
-
   return (
     <footer className="bg-gray-800 dark:bg-gray-900 text-white py-8">
       <div className="container mx-auto px-4">

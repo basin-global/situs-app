@@ -24,10 +24,6 @@ export default function Header() {
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
-  // Add check for metadata route
-  const isMetadataRoute = pathname.startsWith('/metadata/')
-  if (isMetadataRoute) return null;
-
   const isHomePage = pathname === '/'
   const isProfilePage = pathname.startsWith('/profile')
   const isAdminPage = pathname.startsWith('/manage')

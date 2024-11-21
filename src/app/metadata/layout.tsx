@@ -12,10 +12,23 @@ const spaceMono = Space_Mono({
   variable: '--font-space-mono',
 })
 
+export const metadata = {
+  title: 'Situs Metadata',
+  description: 'Situs metadata viewer',
+}
+
 export default function MetadataLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  return children;
+  return (
+    <html lang="en">
+      <body className={`${spaceGrotesk.variable} ${spaceMono.variable} bg-black`}>
+        <div className="h-screen w-screen overflow-hidden">
+          {children}
+        </div>
+      </body>
+    </html>
+  );
 } 
