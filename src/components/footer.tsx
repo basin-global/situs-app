@@ -69,7 +69,7 @@ export default function Footer() {
                 className="h-6 w-6"
               />
             </Link>
-            <Link href="https://docs.situs.ac" target="_blank" rel="noopener noreferrer">
+            <Link href="https://docs.ensitus.xyz" target="_blank" rel="noopener noreferrer">
               <Image src="/footer/gitbook.png" alt="Situs Docs" width={iconSize} height={iconSize} />
             </Link>
             <Link href="https://github.com/basin-global/Situs-Protocol" target="_blank" rel="noopener noreferrer">
