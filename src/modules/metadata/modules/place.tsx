@@ -1,7 +1,5 @@
 'use client';
 
-import PlaceModule from '@/modules/place';
-
 interface MetadataPlaceProps {
   address: string;
   selectedChain: string;
@@ -10,7 +8,7 @@ interface MetadataPlaceProps {
 export default function MetadataPlace({ address, selectedChain }: MetadataPlaceProps) {
   return (
     <div className="p-4">
-      <PlaceModule />
+      <div className="text-gray-400">Place data coming soon</div>
     </div>
   );
 } 

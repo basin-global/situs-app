@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import axios from 'axios';
-import { Asset } from '@/modules/assets';
+import type { Asset } from '@/modules/assets';
 
 interface MetadataAssetsProps {
   address: string;
@@ -16,8 +15,9 @@ export default function MetadataAssets({ address, selectedChain }: MetadataAsset
   useEffect(() => {
     async function fetchAssets() {
       try {
-        const response = await axios.get(`/api/simplehash/nft?address=${address}&chain=${selectedChain}`);
-        setAssets(response.data.nfts || []);
+        const response = await fetch(`/api/simplehash/nft?address=${address}&chain=${selectedChain}`);
+        const data = await response.json();
+        setAssets(data.nfts || []);
       } catch (error) {
         console.error('Error fetching assets:', error);
       } finally {
@@ -51,6 +51,7 @@ export default function MetadataAssets({ address, selectedChain }: MetadataAsset
               src={asset.image_url} 
               alt={asset.name}
               className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
             />
           </div>
           <div className="p-2">

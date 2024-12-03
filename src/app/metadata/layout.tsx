@@ -12,6 +12,15 @@ const spaceMono = Space_Mono({
   variable: '--font-space-mono',
 })
 
+export const metadata = {
+  title: 'Situs Metadata',
+  description: 'Situs metadata viewer',
+}
+
+export const dynamic = 'force-dynamic'
+
+export const runtime = 'edge'
+
 export default function MetadataLayout({
   children,
 }: {

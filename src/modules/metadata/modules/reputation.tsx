@@ -1,7 +1,5 @@
 'use client';
 
-import ReputationModule from '@/modules/reputation';
-
 interface MetadataReputationProps {
   address: string;
   selectedChain: string;
@@ -10,7 +8,7 @@ interface MetadataReputationProps {
 export default function MetadataReputation({ address, selectedChain }: MetadataReputationProps) {
   return (
     <div className="p-4">
-      <ReputationModule />
+      <div className="text-gray-400">Reputation data coming soon</div>
     </div>
   );
 } 

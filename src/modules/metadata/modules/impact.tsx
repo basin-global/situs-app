@@ -1,7 +1,5 @@
 'use client';
 
-import ImpactModule from '@/modules/impact';
-
 interface MetadataImpactProps {
   address: string;
   selectedChain: string;
@@ -10,7 +8,7 @@ interface MetadataImpactProps {
 export default function MetadataImpact({ address, selectedChain }: MetadataImpactProps) {
   return (
     <div className="p-4">
-      <ImpactModule />
+      <div className="text-gray-400">Impact data coming soon</div>
     </div>
   );
 } 
