@@ -12,11 +12,6 @@ const spaceMono = Space_Mono({
   variable: '--font-space-mono',
 })
 
-export const metadata = {
-  title: 'Situs Metadata',
-  description: 'Situs metadata viewer',
-}
-
 export default function MetadataLayout({
   children,
 }: {
@@ -24,17 +19,8 @@ export default function MetadataLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <meta httpEquiv="Content-Security-Policy" 
-          content="default-src 'self' 'unsafe-inline'; 
-                  img-src * data: blob:; 
-                  font-src 'self' fonts.gstatic.com data:;
-                  frame-ancestors 'self' https://*.opensea.io https://*.rarible.com https://*.blur.io *;" />
-      </head>
       <body className={`${spaceGrotesk.variable} ${spaceMono.variable} bg-black`}>
-        <div className="h-screen w-screen overflow-hidden">
-          {children}
-        </div>
+        {children}
       </body>
     </html>
   );

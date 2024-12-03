@@ -4,7 +4,7 @@ export default function MetadataViewPage({ params }: {
   params: { contract: string; tokenId: string } 
 }) {
   return (
-    <div data-sandbox-compatible="true">
+    <div>
       <ModuleView contract={params.contract} tokenId={params.tokenId} />
     </div>
   );
