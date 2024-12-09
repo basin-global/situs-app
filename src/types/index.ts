@@ -150,3 +150,9 @@ export interface OG {
     createAccount?: (params: { tokenContract: string; tokenId: string }) => Promise<string>;
     executeCall?: (params: { account: string; to: string; value: string; data: string }) => Promise<{ hash: string }>;
   }
+
+  export interface EnsuranceForm {
+    name: string;
+    description: string;
+    // Add other fields as needed
+  }

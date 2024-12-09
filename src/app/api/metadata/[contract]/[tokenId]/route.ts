@@ -23,7 +23,7 @@ export async function GET(
     return new Response(JSON.stringify({
       ...metadata,
       image: generatedImageUrl,
-      animation_url: `https://ensitus.xyz/metadata/${params.contract}/${params.tokenId}`,
+      animation_url: `https://iframe-tokenbound.vercel.app/${params.contract}/${params.tokenId}/8453`,
       cached_at: Date.now()
     }), {
       headers: {

@@ -5,9 +5,18 @@ export const runtime = 'edge';
 
 export async function GET() {
   try {
-    console.log('API: Fetching OGs from database...');
+    console.log('API: Starting getOGs request');
     const ogs = await getAllOGs();
-    console.log('API: Fetched OGs from database:', ogs.length);
+    console.log('API: Database returned:', ogs.length, 'OGs');
+    console.log('API: First OG example:', ogs[0]);
+    console.log('API: Last OG example:', ogs[ogs.length - 1]);
+    
+    // Log any OGs with null/undefined critical fields
+    const invalidOGs = ogs.filter(og => !og.og_name || !og.contract_address);
+    if (invalidOGs.length > 0) {
+      console.log('API: Found OGs with missing critical fields:', invalidOGs);
+    }
+    
     return NextResponse.json(ogs);
   } catch (error) {
     console.error('API: Error fetching OGs:', error);

@@ -43,7 +43,13 @@ export function OGProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
       try {
         const fetchedOGs = await getOGs();
-        console.log('OGs set in context:', fetchedOGs);
+        console.log('Raw OGs from API:', fetchedOGs);
+        console.log('Number of OGs fetched:', fetchedOGs.length);
+        // Log any OGs that might be filtered out
+        const invalidOGs = fetchedOGs.filter(og => !og.og_name);
+        if (invalidOGs.length > 0) {
+          console.warn('Found OGs without og_name:', invalidOGs);
+        }
         setOGs(fetchedOGs);
       } catch (error) {
         console.error('Error fetching OGs:', error);

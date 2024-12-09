@@ -3,13 +3,11 @@ import { OG } from '@/types/index';
 let cachedOGs: OG[] | null = null;
 
 export async function getOGs(): Promise<OG[]> {
-    console.log('getOGs called, isHardRefresh:', isHardRefresh(), 'cachedOGs:', !!cachedOGs);
     if (cachedOGs && !isHardRefresh()) {
-        console.log('Returning cached OGs:', cachedOGs);
+        console.log('Full cached OGs:', JSON.stringify(cachedOGs, null, 2));
         return cachedOGs;
     }
 
-    console.log('Fetching fresh OGs');
     try {
         const response = await fetch('/api/getOGs', {
             cache: 'no-store'
@@ -18,7 +16,7 @@ export async function getOGs(): Promise<OG[]> {
             throw new Error('Failed to fetch OGs');
         }
         const data = await response.json();
-        console.log('Fetched OGs from API:', data);
+        console.log('Full API response:', JSON.stringify(data, null, 2));
         cachedOGs = data;
         return data;
     } catch (error) {

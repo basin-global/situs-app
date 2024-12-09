@@ -10,6 +10,12 @@ export function OGChooser() {
   const router = useRouter()
   const pathname = usePathname()
 
+  console.log('OGChooser received OGs:', OGs.length, 'OGs');
+  console.log('OGChooser OGs:', OGs.map(og => ({
+    og_name: og.og_name,
+    total_supply: og.total_supply
+  })));
+
   const handleOGChange = (value: string) => {
     const selectedOG = OGs.find(og => og.og_name === value);
     if (selectedOG) {

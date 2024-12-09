@@ -296,9 +296,25 @@ export async function updateSitusDatabase() {
 export async function getAllOGs() {
   console.log('Database: Executing getAllOGs query...');
   try {
-    const { rows } = await sql`SELECT * FROM situs_ogs ORDER BY id ASC`;
-    console.log('Database: getAllOGs result:', JSON.stringify(rows, null, 2));
-    console.log('Database: Number of OGs returned:', rows.length);
+    const { rows } = await sql`
+      SELECT 
+        id,
+        og_name,
+        contract_address,
+        name_front,
+        tagline,
+        description,
+        email,
+        website,
+        total_supply,
+        chat,
+        group_ensurance
+      FROM situs_ogs 
+      WHERE contract_address IS NOT NULL
+      ORDER BY id ASC
+    `;
+    
+    console.log('Database: Found', rows.length, 'OGs with valid contract addresses');
     return rows;
   } catch (error) {
     console.error('Database: Error in getAllOGs:', error);

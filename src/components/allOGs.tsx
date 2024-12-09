@@ -22,20 +22,42 @@ export default function AllOGs({ searchQuery = '', setSearchQuery }: AllOGsProps
       try {
         setLoading(true)
         const fetchedOGs = await getOGs()
+        console.log('Raw fetched OGs:', fetchedOGs.length, fetchedOGs);
+        
+        // Log OGs with zero total_supply
+        const zeroSupplyOGs = fetchedOGs.filter(og => !og.total_supply);
+        if (zeroSupplyOGs.length > 0) {
+          console.log('OGs with zero total_supply:', zeroSupplyOGs);
+        }
+        
         // Transform database rows into OG objects
-        const transformedOGs: OG[] = fetchedOGs.map(row => ({
-          og_name: row.og_name,
-          contract_address: row.contract_address,
-          name: row.name_front || '',
-          email: row.email || '',
-          total_supply: row.total_supply || 0,
-          tagline: row.tagline || '',
-          description: row.description || '',
-          website: row.website || '',
-          chat: row.chat || '',
-          group_ensurance: row.group_ensurance || false
-        }))
-        setOgs(transformedOGs)
+        const transformedOGs: OG[] = fetchedOGs.map(row => {
+          const transformed = {
+            og_name: row.og_name,
+            contract_address: row.contract_address,
+            name: row.name_front || '',
+            email: row.email || '',
+            total_supply: row.total_supply || 0,
+            tagline: row.tagline || '',
+            description: row.description || '',
+            website: row.website || '',
+            chat: row.chat || '',
+            group_ensurance: row.group_ensurance || false
+          };
+          return transformed;
+        })
+        
+        console.log('Transformed OGs:', transformedOGs.length, transformedOGs);
+        
+        // Filter out OGs with no contract address
+        const validOGs = transformedOGs.filter(og => og.contract_address);
+        if (validOGs.length !== transformedOGs.length) {
+          console.log('Filtered out OGs without contract address:', 
+            transformedOGs.filter(og => !og.contract_address)
+          );
+        }
+        
+        setOgs(validOGs)
       } catch (err) {
         setError('Failed to fetch OGs')
         console.error('Error fetching OGs:', err)
@@ -48,7 +70,7 @@ export default function AllOGs({ searchQuery = '', setSearchQuery }: AllOGsProps
   }, [])
 
   useEffect(() => {
-    console.log('OGs in AllOGs component:', ogs);
+    console.log('OGs state updated:', ogs.length, ogs);
   }, [ogs]);
 
   const getOrbPath = (ogName: string) => {
@@ -56,13 +78,19 @@ export default function AllOGs({ searchQuery = '', setSearchQuery }: AllOGsProps
   }
 
   const filteredOGs = useMemo(() => {
-    if (!ogs || !searchQuery) return ogs || [];
+    if (!ogs || !searchQuery) {
+      console.log('Returning unfiltered OGs:', ogs?.length || 0);
+      return ogs || [];
+    }
     
-    return ogs.filter(og => {
+    const filtered = ogs.filter(og => {
       const ogName = og.og_name.toLowerCase();
       const query = searchQuery.toLowerCase();
       return ogName.includes(query);
     });
+    
+    console.log('Filtered OGs:', filtered.length);
+    return filtered;
   }, [ogs, searchQuery]);
 
   return (
@@ -72,7 +100,7 @@ export default function AllOGs({ searchQuery = '', setSearchQuery }: AllOGsProps
           Local Is Global
         </h2>
         <p className="text-xl text-center mb-8 max-w-3xl mx-auto">
-          These 14 groups with over 600 members are taking systemic risk head on by investing in natural assets and societal well-being.
+          These {ogs.length} groups with over {ogs.reduce((acc, og) => acc + (og.total_supply || 0), 0)} members are taking systemic risk head on by investing in natural assets and societal well-being.
         </p>
 
         {searchQuery !== undefined && (
