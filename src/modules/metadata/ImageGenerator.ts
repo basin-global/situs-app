@@ -1,5 +1,6 @@
-import sharp from 'sharp';
+import { ImageResponse } from '@vercel/og';
 import { put } from '@vercel/blob';
+import React from 'react';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -17,34 +18,9 @@ const DEFAULT_STYLE: ImageStyle = {
   color: '#FFFFFF',
   position: {
     x: 50,
-    y: 75
+    y: 200
   }
 };
-
-function escapeXml(unsafe: string): string {
-  return unsafe.replace(/[<>&'"]/g, (c) => {
-    switch (c) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case '\'': return '&apos;';
-      case '"': return '&quot;';
-      default: return c;
-    }
-  });
-}
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-export const fetchCache = 'force-no-store';
-
-// Updated wrap function to break at hyphens
-function wrapText(text: string): string[] {
-  // Split at hyphens but keep the hyphen with the first part
-  return text.split('-').map((part, i, arr) => 
-    i < arr.length - 1 ? part + '-' : part
-  );
-}
 
 export async function generateAccountImage(
   baseImageUrl: string,
@@ -54,130 +30,85 @@ export async function generateAccountImage(
   style: Partial<ImageStyle> = {}
 ): Promise<string> {
   try {
-    console.log('Starting image generation for:', accountName);
     const finalStyle = { ...DEFAULT_STYLE, ...style };
 
-    const imageResponse = await fetch(baseImageUrl, { 
-      cache: 'no-store',
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache'
-      }
-    });
-    
-    if (!imageResponse.ok) {
-      throw new Error(`Failed to fetch base image: ${imageResponse.status}`);
-    }
+    const fontPath = path.resolve('./public/fonts/OpenSans-Bold.ttf');
+    const fontData = await fs.readFile(fontPath);
 
-    const imageArrayBuffer = await imageResponse.arrayBuffer();
-    const baseImage = await sharp(Buffer.from(imageArrayBuffer));
-    const metadata = await baseImage.metadata();
-    
-    if (!metadata.width || !metadata.height) {
-      throw new Error('Could not get image dimensions');
-    }
-
-    // Create a combined overlay with both gradient and text
-    const wrappedLines = wrapText(accountName);
-    const combinedOverlay = Buffer.from(`
-      <svg width="${metadata.width}" height="${metadata.height}" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <radialGradient id="overlay" cx="50%" cy="${finalStyle.position.y}%" r="50%" fx="50%" fy="${finalStyle.position.y}%">
-            <stop offset="0%" stop-color="rgba(0,0,0,0.8)" />
-            <stop offset="60%" stop-color="rgba(0,0,0,0.4)" />
-            <stop offset="100%" stop-color="rgba(0,0,0,0)" />
-          </radialGradient>
-          
-          <filter id="shadow">
-            <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="black" flood-opacity="0.8"/>
-          </filter>
-
-          <linearGradient id="textBackground" x1="0%" y1="0%" x2="0%" y2="100%">
-            <stop offset="0%" style="stop-color:rgba(0,0,0,0.8)" />
-            <stop offset="100%" style="stop-color:rgba(0,0,0,0.9)" />
-          </linearGradient>
-        </defs>
-
-        <style>
-          @font-face {
-            font-family: 'SystemFont';
-            src: local('Arial Bold'), local('Arial-Bold'), local('Arial');
-          }
-        </style>
-        
-        <!-- Gradient overlay -->
-        <rect 
-          x="0" 
-          y="${metadata.height * (finalStyle.position.y/100 - 0.2)}" 
-          width="${metadata.width}" 
-          height="${metadata.height * 0.4}" 
-          fill="url(#overlay)" 
-        />
-
-        <!-- Text background -->
-        <rect
-          x="${(metadata.width! * finalStyle.position.x) / 100 - metadata.width! * 0.4}"
-          y="${(metadata.height! * finalStyle.position.y) / 100 - finalStyle.fontSize}"
-          width="${metadata.width! * 0.8}"
-          height="${finalStyle.fontSize * wrappedLines.length * 1.5}"
-          rx="15"
-          fill="url(#textBackground)"
-          filter="blur(8px)"
-          opacity="0.95"
-        />
-
-        <!-- Text with shadow -->
-        <g filter="url(#shadow)">
-          ${wrappedLines.map((line, i) => `
-            <text 
-              x="${(metadata.width! * finalStyle.position.x) / 100}" 
-              y="${(metadata.height! * finalStyle.position.y) / 100 + (i * finalStyle.fontSize * 1.2)}" 
-              font-family="SystemFont, Arial Bold, Arial-Bold, Arial, sans-serif"
-              font-size="${finalStyle.fontSize}"
-              font-weight="bold"
-              fill="${finalStyle.color}"
-              text-anchor="middle"
-              dominant-baseline="middle"
-              letter-spacing="0.05em"
-              style="text-transform: lowercase"
-            >${escapeXml(line)}</text>
-          `).join('')}
-        </g>
-      </svg>
-    `);
-
-    // Generate the new image
-    const buffer = await baseImage
-      .composite([
+    const imageResponse = new ImageResponse(
+      React.createElement(
+        'div',
         {
-          input: combinedOverlay,
-          top: 0,
-          left: 0,
-        }
-      ])
-      .png()
-      .toBuffer();
+          style: {
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundImage: `url(${baseImageUrl})`,
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+            fontFamily: '"Open Sans"',
+            color: finalStyle.color,
+          } as const,
+        },
+        React.createElement(
+          'div',
+          {
+            style: {
+              width: '100%',
+              padding: '2rem',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              marginTop: '100px',
+            },
+          },
+          React.createElement(
+            'div',
+            {
+              style: {
+                fontSize: finalStyle.fontSize,
+                lineHeight: 1.2,
+                textTransform: 'lowercase',
+                textShadow: '0 2px 4px rgba(0,0,0,0.8)',
+                fontWeight: 800,
+              },
+            },
+            accountName
+          )
+        )
+      ),
+      {
+        width: 1000,
+        height: 1000,
+        fonts: [
+          {
+            name: 'Open Sans',
+            data: fontData,
+            weight: 800,
+            style: 'normal',
+          },
+        ],
+      }
+    );
+
+    // Convert the response to a buffer
+    const buffer = await imageResponse.arrayBuffer();
 
     // Store in blob storage
     const { url } = await put(
       `${ogName}/generated/${tokenId}.png`,
-      buffer,
+      Buffer.from(buffer),
       { access: 'public', addRandomSuffix: false }
     );
 
-    console.log('Generated image with dimensions:', metadata.width, 'x', metadata.height);
-    console.log('Text content:', wrappedLines);
-    
     return url;
 
   } catch (error) {
-    console.error('Error generating account image:', error);
-    console.error('Error details:', {
-      baseImageUrl,
-      accountName,
-      ogName,
-      tokenId
-    });
+    console.error('Error generating image:', error);
     throw error;
   }
 } 
