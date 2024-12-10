@@ -119,9 +119,9 @@ export async function generateAccountImage(
             <text 
               x="${(metadata.width! * finalStyle.position.x) / 100}" 
               y="${(metadata.height! * finalStyle.position.y) / 100 + (i * finalStyle.fontSize * 1.2)}" 
-              font-family="Helvetica Neue, Helvetica, Arial, sans-serif"
+              font-family="Arial Bold, Arial, Helvetica, sans-serif"
               font-size="${finalStyle.fontSize}"
-              font-weight="800"
+              font-weight="bold"
               fill="${finalStyle.color}"
               text-anchor="middle"
               dominant-baseline="middle"
