@@ -34,8 +34,9 @@ function escapeXml(unsafe: string): string {
   });
 }
 
-export const dynamic = 'force-dynamic'; // Disable caching
-export const fetchCache = 'force-no-store'; // Disable fetch caching
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
 
 // Updated wrap function to break at hyphens
 function wrapText(text: string): string[] {
@@ -53,10 +54,15 @@ export async function generateAccountImage(
   style: Partial<ImageStyle> = {}
 ): Promise<string> {
   try {
+    console.log('Starting image generation for:', accountName);
     const finalStyle = { ...DEFAULT_STYLE, ...style };
 
     const imageResponse = await fetch(baseImageUrl, { 
-      cache: 'no-store'
+      cache: 'no-store',
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache'
+      }
     });
     
     if (!imageResponse.ok) {
@@ -92,6 +98,13 @@ export async function generateAccountImage(
           </linearGradient>
         </defs>
 
+        <style>
+          @font-face {
+            font-family: 'SystemFont';
+            src: local('Arial Bold'), local('Arial-Bold'), local('Arial');
+          }
+        </style>
+        
         <!-- Gradient overlay -->
         <rect 
           x="0" 
@@ -119,7 +132,7 @@ export async function generateAccountImage(
             <text 
               x="${(metadata.width! * finalStyle.position.x) / 100}" 
               y="${(metadata.height! * finalStyle.position.y) / 100 + (i * finalStyle.fontSize * 1.2)}" 
-              font-family="Arial Bold, Arial, Helvetica, sans-serif"
+              font-family="SystemFont, Arial Bold, Arial-Bold, Arial, sans-serif"
               font-size="${finalStyle.fontSize}"
               font-weight="bold"
               fill="${finalStyle.color}"
@@ -152,11 +165,19 @@ export async function generateAccountImage(
       { access: 'public', addRandomSuffix: false }
     );
 
-    console.log('Generated image URL:', url);
+    console.log('Generated image with dimensions:', metadata.width, 'x', metadata.height);
+    console.log('Text content:', wrappedLines);
+    
     return url;
 
   } catch (error) {
     console.error('Error generating account image:', error);
+    console.error('Error details:', {
+      baseImageUrl,
+      accountName,
+      ogName,
+      tokenId
+    });
     throw error;
   }
 } 
