@@ -32,7 +32,9 @@ export async function generateAccountImage(
   try {
     const finalStyle = { ...DEFAULT_STYLE, ...style };
 
-    const fontPath = path.resolve('./public/fonts/OpenSans-Bold.ttf');
+    const cacheBustedUrl = `${baseImageUrl}?t=${Date.now()}`;
+
+    const fontPath = path.resolve('./public/fonts/Helvetica-Bold-02.ttf');
     const fontData = await fs.readFile(fontPath);
 
     const imageResponse = new ImageResponse(
@@ -46,11 +48,11 @@ export async function generateAccountImage(
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundImage: `url(${baseImageUrl})`,
+            backgroundImage: `url(${cacheBustedUrl})`,
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center',
             backgroundSize: 'cover',
-            fontFamily: '"Open Sans"',
+            fontFamily: '"Helvetica"',
             color: finalStyle.color,
           } as const,
         },
@@ -75,6 +77,7 @@ export async function generateAccountImage(
                 textTransform: 'lowercase',
                 textShadow: '0 2px 4px rgba(0,0,0,0.8)',
                 fontWeight: 800,
+                letterSpacing: '0.02em',
               },
             },
             accountName
@@ -86,9 +89,9 @@ export async function generateAccountImage(
         height: 1000,
         fonts: [
           {
-            name: 'Open Sans',
+            name: 'Helvetica',
             data: fontData,
-            weight: 800,
+            weight: 700,
             style: 'normal',
           },
         ],
