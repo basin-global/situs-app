@@ -17,7 +17,13 @@ export async function GET() {
       console.log('API: Found OGs with missing critical fields:', invalidOGs);
     }
     
-    return NextResponse.json(ogs);
+    // Add this line to force no caching
+    const headers = {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+      'Content-Type': 'application/json',
+    };
+    
+    return NextResponse.json(ogs, { headers });
   } catch (error) {
     console.error('API: Error fetching OGs:', error);
     return NextResponse.json({ error: 'Failed to fetch OGs' }, { status: 500 });

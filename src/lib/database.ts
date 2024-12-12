@@ -296,7 +296,9 @@ export async function updateSitusDatabase() {
 export async function getAllOGs() {
   console.log('Database: Executing getAllOGs query...');
   try {
+    // Add cache-busting hint to Postgres
     const { rows } = await sql`
+      /*NO QUERY CACHE*/
       SELECT 
         id,
         og_name,
@@ -315,6 +317,15 @@ export async function getAllOGs() {
     `;
     
     console.log('Database: Found', rows.length, 'OGs with valid contract addresses');
+    // Add detailed logging
+    rows.forEach(og => {
+      console.log(`Database: OG ${og.og_name} data:`, {
+        name_front: og.name_front,
+        tagline: og.tagline,
+        description: og.description?.substring(0, 50) + '...'
+      });
+    });
+    
     return rows;
   } catch (error) {
     console.error('Database: Error in getAllOGs:', error);
