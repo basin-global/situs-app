@@ -24,7 +24,6 @@ export async function getOGs(): Promise<OG[]> {
         return [];
     }
 }
-
 function isHardRefresh(): boolean {
     if (typeof window === 'undefined') return false;
     
@@ -36,3 +35,4 @@ function isHardRefresh(): boolean {
 export function clearOGsCache() {
     cachedOGs = null;
 }
+

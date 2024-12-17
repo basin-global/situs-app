@@ -71,19 +71,34 @@ export async function updateOGs() {
   const client = getClient();
 
   try {
+    console.log('Starting updateOGs...');
     const ogs = await client.readContract({
       address: FACTORY_ADDRESS,
       abi: FACTORY_ABI,
       functionName: 'getTldsArray',
     }) as string[];
 
+    console.log('Found OGs from contract:', ogs);
+
     for (const og of ogs) {
+      console.log(`Processing OG: ${og}`);
       const contractAddress = await client.readContract({
         address: FACTORY_ADDRESS,
         abi: FACTORY_ABI,
         functionName: 'tldNamesAddresses',
         args: [og],
       }) as Address;
+
+      console.log(`Contract address for ${og}: ${contractAddress}`);
+
+      // First check if OG exists
+      const { rows } = await sql`
+        SELECT og_name, contract_address 
+        FROM situs_ogs 
+        WHERE og_name = ${og}
+      `;
+      
+      console.log(`DB check for ${og}:`, rows[0] || 'Not found in DB');
 
       await sql`
         INSERT INTO situs_ogs (og_name, contract_address, last_updated)
@@ -92,6 +107,14 @@ export async function updateOGs() {
           contract_address = ${contractAddress},
           last_updated = CURRENT_TIMESTAMP
       `;
+
+      // Verify the insert/update worked
+      const { rows: verifyRows } = await sql`
+        SELECT og_name, contract_address 
+        FROM situs_ogs 
+        WHERE og_name = ${og}
+      `;
+      console.log(`Verified ${og} in DB:`, verifyRows[0]);
 
       const sanitizedOG = sanitizeOGName(og);
       await sql.query(`
@@ -104,6 +127,14 @@ export async function updateOGs() {
         )
       `);
     }
+
+    // Final verification
+    const { rows: finalCheck } = await sql`
+      SELECT og_name, contract_address 
+      FROM situs_ogs 
+      ORDER BY og_name
+    `;
+    console.log('Final DB state:', finalCheck);
 
     console.log('OGs updated successfully');
   } catch (error) {
@@ -296,9 +327,7 @@ export async function updateSitusDatabase() {
 export async function getAllOGs() {
   console.log('Database: Executing getAllOGs query...');
   try {
-    // Add cache-busting hint to Postgres
     const { rows } = await sql`
-      /*NO QUERY CACHE*/
       SELECT 
         id,
         og_name,
@@ -312,17 +341,17 @@ export async function getAllOGs() {
         chat,
         group_ensurance
       FROM situs_ogs 
-      WHERE contract_address IS NOT NULL
       ORDER BY id ASC
     `;
     
-    console.log('Database: Found', rows.length, 'OGs with valid contract addresses');
-    // Add detailed logging
+    console.log('Database: Raw rows:', JSON.stringify(rows, null, 2));
+    
+    // Log each OG's critical fields
     rows.forEach(og => {
-      console.log(`Database: OG ${og.og_name} data:`, {
-        name_front: og.name_front,
-        tagline: og.tagline,
-        description: og.description?.substring(0, 50) + '...'
+      console.log(`OG: ${og.og_name}`, {
+        contract: og.contract_address?.substring(0, 10) + '...',
+        name_front: og.name_front || 'NO NAME',
+        total_supply: og.total_supply || 0
       });
     });
     

@@ -22,45 +22,21 @@ export default function AllOGs({ searchQuery = '', setSearchQuery }: AllOGsProps
       try {
         setLoading(true)
         const fetchedOGs = await getOGs()
-        console.log('Raw fetched OGs:', fetchedOGs.length, fetchedOGs);
+        console.log('Frontend: Raw fetched OGs:', fetchedOGs.length);
         
-        // Log OGs with zero total_supply
-        const zeroSupplyOGs = fetchedOGs.filter(og => !og.total_supply);
-        if (zeroSupplyOGs.length > 0) {
-          console.log('OGs with zero total_supply:', zeroSupplyOGs);
-        }
+        // Log each OG being processed
+        fetchedOGs.forEach(og => {
+          console.log('Frontend: Processing OG:', {
+            name: og.og_name,
+            contract: og.contract_address?.substring(0, 10) + '...',
+            total_supply: og.total_supply
+          });
+        });
         
-        // Transform database rows into OG objects
-        const transformedOGs: OG[] = fetchedOGs.map(row => {
-          const transformed = {
-            og_name: row.og_name,
-            contract_address: row.contract_address,
-            name: row.name_front || '',
-            email: row.email || '',
-            total_supply: row.total_supply || 0,
-            tagline: row.tagline || '',
-            description: row.description || '',
-            website: row.website || '',
-            chat: row.chat || '',
-            group_ensurance: row.group_ensurance || false
-          };
-          return transformed;
-        })
-        
-        console.log('Transformed OGs:', transformedOGs.length, transformedOGs);
-        
-        // Filter out OGs with no contract address
-        const validOGs = transformedOGs.filter(og => og.contract_address);
-        if (validOGs.length !== transformedOGs.length) {
-          console.log('Filtered out OGs without contract address:', 
-            transformedOGs.filter(og => !og.contract_address)
-          );
-        }
-        
-        setOgs(validOGs)
+        setOgs(fetchedOGs)
       } catch (err) {
         setError('Failed to fetch OGs')
-        console.error('Error fetching OGs:', err)
+        console.error('Frontend: Error fetching OGs:', err)
       } finally {
         setLoading(false)
       }

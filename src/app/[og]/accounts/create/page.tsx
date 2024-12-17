@@ -538,11 +538,11 @@ const CreateAccountPage = () => {
             <div className="text-center">
               <p className="text-lg text-gray-700 dark:text-gray-300">
                 Price: <span className="font-semibold">{formatEther(priceWei)} ETH</span>
-                {ethUsdPrice && (
+                {/* {ethUsdPrice && (
                   <span className="ml-2 text-sm">
                     (~${formatUsdPrice(parseFloat(formatEther(priceWei)), ethUsdPrice)} USD)
                   </span>
-                )}
+                )} */}
               </p>
               <p className="text-sm text-green-600 dark:text-green-400 mt-1 font-medium italic">
                 One-time purchase, no renewal fees

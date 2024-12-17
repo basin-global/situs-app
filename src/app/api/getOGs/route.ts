@@ -7,23 +7,15 @@ export async function GET() {
   try {
     console.log('API: Starting getOGs request');
     const ogs = await getAllOGs();
-    console.log('API: Database returned:', ogs.length, 'OGs');
-    console.log('API: First OG example:', ogs[0]);
-    console.log('API: Last OG example:', ogs[ogs.length - 1]);
+    console.log('API: Returning', ogs.length, 'OGs');
     
-    // Log any OGs with null/undefined critical fields
-    const invalidOGs = ogs.filter(og => !og.og_name || !og.contract_address);
-    if (invalidOGs.length > 0) {
-      console.log('API: Found OGs with missing critical fields:', invalidOGs);
+    // Log first and last OG for verification
+    if (ogs.length > 0) {
+      console.log('API: First OG:', ogs[0].og_name);
+      console.log('API: Last OG:', ogs[ogs.length - 1].og_name);
     }
     
-    // Add this line to force no caching
-    const headers = {
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'Content-Type': 'application/json',
-    };
-    
-    return NextResponse.json(ogs, { headers });
+    return NextResponse.json(ogs);
   } catch (error) {
     console.error('API: Error fetching OGs:', error);
     return NextResponse.json({ error: 'Failed to fetch OGs' }, { status: 500 });
