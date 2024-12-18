@@ -12,7 +12,8 @@ const nextConfig = {
       'metadata.ens.domains',
       'storage.googleapis.com',
       'arweave.net',
-      'cloudflare-ipfs.com'
+      'cloudflare-ipfs.com',
+      '2rhcowhl4b5wwjk8.public.blob.vercel-storage.com'
     ],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",

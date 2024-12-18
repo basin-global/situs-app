@@ -22,7 +22,7 @@ export default function Footer() {
     document.documentElement.classList.add('dark')
 
     // ETH price fetching logic
-    const fetchEthPrice = async () => {
+    /* const fetchEthPrice = async () => {
       try {
         const response = await fetch('/api/eth-price')
         const data = await response.json()
@@ -42,7 +42,7 @@ export default function Footer() {
         }
       }, 60000)
       return () => clearInterval(interval)
-    }
+    } */
   }, [authenticated])
 
   return (
@@ -94,11 +94,11 @@ export default function Footer() {
             )}
           </div>
           <div className="flex flex-col items-center space-y-2">
-            {authenticated && ethPrice && (
+            {/* {authenticated && ethPrice && (
               <span className="font-mono text-sm text-gray-400">
                 ETH: ${ethPrice.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               </span>
-            )}
+            )} */}
           </div>
           <div className="mt-4">
             <ReferralComponent />
