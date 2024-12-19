@@ -22,12 +22,17 @@ const MetadataSync: React.FC = () => {
     try {
       // Just hit each URL
       for (let tokenId = 1; tokenId <= currentOG.total_supply; tokenId++) {
-        const url = `${process.env.NEXT_PUBLIC_METADATA_URL}/api/metadata/${currentOG.contract_address}/${tokenId}`;
+        // Always use https://ensitus.xyz in production
+        const baseUrl = process.env.NODE_ENV === 'production' 
+          ? 'https://ensitus.xyz' 
+          : process.env.NEXT_PUBLIC_METADATA_URL;
+
+        const url = `${baseUrl}/api/metadata/${currentOG.contract_address}/${tokenId}`;
         console.log(`Hitting: ${url}`);
         await fetch(url);
         setCurrentToken(tokenId);
         // Small delay between requests
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Increased delay to 1 second
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     } catch (error) {
       console.error('Error:', error);
