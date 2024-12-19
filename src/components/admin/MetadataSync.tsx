@@ -4,15 +4,24 @@ import React, { useState } from 'react';
 import { useOG } from '@/contexts/og-context';
 import { AdminOGSelector } from './AdminOGSelector';
 import { Button } from '@/components/ui/button';
+import { createPublicClient, http, Address } from 'viem';
+import { base } from 'viem/chains';
+import SitusOGAbi from '@/abi/SitusOG.json';
+
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http()
+});
 
 const MetadataSync: React.FC = () => {
   const { currentOG } = useOG();
   const [isSyncing, setIsSyncing] = useState(false);
   const [currentToken, setCurrentToken] = useState<number>(0);
+  const [totalSupply, setTotalSupply] = useState<number>(0);
 
   const syncMetadata = async () => {
-    if (!currentOG?.contract_address || !currentOG?.total_supply) {
-      console.error('No OG selected or missing data');
+    if (!currentOG?.contract_address) {
+      console.error('No OG selected');
       return;
     }
 
@@ -20,14 +29,21 @@ const MetadataSync: React.FC = () => {
     setCurrentToken(0);
 
     try {
-      // Just hit each URL
-      for (let tokenId = 1; tokenId <= currentOG.total_supply; tokenId++) {
-        // Always use https://ensitus.xyz in production
-        const baseUrl = process.env.NODE_ENV === 'production' 
-          ? 'https://ensitus.xyz' 
-          : process.env.NEXT_PUBLIC_METADATA_URL;
+      // Get total supply from contract
+      const idCounter = await publicClient.readContract({
+        address: currentOG.contract_address as Address,
+        abi: SitusOGAbi,
+        functionName: 'idCounter',
+        args: [],
+      }) as bigint;
 
-        const url = `${baseUrl}/api/metadata/${currentOG.contract_address}/${tokenId}`;
+      const supply = Number(idCounter);
+      setTotalSupply(supply);
+      console.log(`Total supply from contract: ${supply}`);
+
+      // Just hit each URL
+      for (let tokenId = 1; tokenId <= supply; tokenId++) {
+        const url = `https://ensitus.xyz/api/metadata/${currentOG.contract_address}/${tokenId}`;
         console.log(`Hitting: ${url}`);
         await fetch(url);
         setCurrentToken(tokenId);
@@ -61,14 +77,14 @@ const MetadataSync: React.FC = () => {
 
           {isSyncing && currentToken > 0 && (
             <div className="text-sm text-gray-600 dark:text-gray-300">
-              Processing token {currentToken} of {currentOG?.total_supply}
+              Processing token {currentToken} of {totalSupply}
             </div>
           )}
         </div>
 
         {currentOG && (
           <div className="text-sm text-gray-600 dark:text-gray-300">
-            Selected: {currentOG.og_name} ({currentOG.total_supply} tokens)
+            Selected: {currentOG.og_name}
           </div>
         )}
       </div>
