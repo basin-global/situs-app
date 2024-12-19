@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 const MetadataSync: React.FC = () => {
   const { currentOG } = useOG();
   const [isSyncing, setIsSyncing] = useState(false);
-  const [progress, setProgress] = useState<{current: number, total: number} | null>(null);
+  const [currentToken, setCurrentToken] = useState<number>(0);
 
   const syncMetadata = async () => {
     if (!currentOG?.contract_address || !currentOG?.total_supply) {
@@ -17,29 +17,23 @@ const MetadataSync: React.FC = () => {
     }
 
     setIsSyncing(true);
-    setProgress({ current: 0, total: currentOG.total_supply });
+    setCurrentToken(0);
 
     try {
-      // Just cycle through each token ID and hit the metadata URL
+      // Just hit each URL
       for (let tokenId = 1; tokenId <= currentOG.total_supply; tokenId++) {
         const url = `${process.env.NEXT_PUBLIC_METADATA_URL}/api/metadata/${currentOG.contract_address}/${tokenId}`;
-        
-        try {
-          await fetch(url);
-          setProgress(prev => prev ? { ...prev, current: tokenId } : null);
-          // Small delay to prevent overwhelming the API
-          await new Promise(resolve => setTimeout(resolve, 500));
-        } catch (error) {
-          console.error(`Error fetching token ${tokenId}:`, error);
-        }
+        console.log(`Hitting: ${url}`);
+        await fetch(url);
+        setCurrentToken(tokenId);
+        // Small delay between requests
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Increased delay to 1 second
       }
     } catch (error) {
-      console.error('Error in sync:', error);
+      console.error('Error:', error);
     } finally {
-      setTimeout(() => {
-        setIsSyncing(false);
-        setProgress(null);
-      }, 2000);
+      setIsSyncing(false);
+      setCurrentToken(0);
     }
   };
 
@@ -59,11 +53,10 @@ const MetadataSync: React.FC = () => {
           >
             {isSyncing ? 'Syncing...' : 'Sync Metadata'}
           </Button>
-          
-          {progress && (
+
+          {isSyncing && currentToken > 0 && (
             <div className="text-sm text-gray-600 dark:text-gray-300">
-              Token {progress.current} of {progress.total}
-              {progress.current === progress.total && ' - Complete!'}
+              Processing token {currentToken} of {currentOG?.total_supply}
             </div>
           )}
         </div>
