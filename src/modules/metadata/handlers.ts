@@ -9,7 +9,6 @@ interface MetadataResponse {
   tba_address: string;
   og_name: string;
   error?: string;
-  isUsingFallback?: boolean;
 }
 
 async function checkImageExists(url: string): Promise<boolean> {
@@ -78,7 +77,6 @@ export async function getMetadata(contract: string, tokenId: string): Promise<Me
 
       // Check images in order: token specific -> OG default -> global default
       let imageUrl = tokenImageUrl;
-      let isUsingFallback = false;
       
       if (!(await checkImageExists(tokenImageUrl))) {
         console.log('Token-specific image not found, checking OG default');
@@ -87,7 +85,6 @@ export async function getMetadata(contract: string, tokenId: string): Promise<Me
         } else {
           console.log('OG default image not found, using global fallback');
           imageUrl = fallbackImageUrl;
-          isUsingFallback = true;
         }
       }
 
@@ -96,9 +93,8 @@ export async function getMetadata(contract: string, tokenId: string): Promise<Me
         description: account.description || '',
         animation_url: `${process.env.NEXT_PUBLIC_METADATA_URL || 'http://localhost:3000'}/metadata/${contract}/${tokenId}`,
         image: imageUrl,
-        og_name: isUsingFallback ? 'default' : sanitizedOG,
-        tba_address: account.tba_address,
-        isUsingFallback
+        og_name: sanitizedOG,
+        tba_address: account.tba_address
       };
 
       console.log('Generated metadata:', metadata);

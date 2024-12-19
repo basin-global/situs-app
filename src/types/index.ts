@@ -156,3 +156,13 @@ export interface OG {
     description: string;
     // Add other fields as needed
   }
+
+  export interface MetadataResponse {
+    name: string;
+    description: string;
+    animation_url: string;
+    image: string;
+    tba_address: string;
+    og_name: string;
+    error?: string;
+  }
