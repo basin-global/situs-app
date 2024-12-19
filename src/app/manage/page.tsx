@@ -8,6 +8,7 @@ import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { toast } from 'react-toastify';
 import { ValidationReport } from '@/types';
 import { updateEnsuranceDatabase } from '@/lib/database';
+import MetadataSync from '@/components/admin/MetadataSync';
 
 interface MissingAccount {
   og: string;
@@ -237,6 +238,7 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+      <MetadataSync />
     </main>
   );
 }
