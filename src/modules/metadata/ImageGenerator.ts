@@ -13,6 +13,15 @@ interface ImageStyle {
   };
 }
 
+// Add interface for the function parameters
+interface ImageGeneratorParams {
+  baseImageUrl: string;
+  fullAccountName: string;
+  ogName: string;
+  tokenId: string;
+  style?: Partial<ImageStyle>;
+}
+
 const DEFAULT_STYLE: ImageStyle = {
   fontSize: 64,
   color: '#FFFFFF',
@@ -24,7 +33,7 @@ const DEFAULT_STYLE: ImageStyle = {
 
 export async function generateAccountImage(
   baseImageUrl: string,
-  accountName: string,
+  fullAccountName: string,
   ogName: string,
   tokenId: string,
   style: Partial<ImageStyle> = {}
@@ -80,7 +89,7 @@ export async function generateAccountImage(
                 letterSpacing: '0.02em',
               },
             },
-            accountName
+            fullAccountName
           )
         )
       ),

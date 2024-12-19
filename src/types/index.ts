@@ -164,5 +164,6 @@ export interface OG {
     image: string;
     tba_address: string;
     og_name: string;
+    full_account_name: string;
     error?: string;
   }

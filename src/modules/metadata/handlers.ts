@@ -8,6 +8,7 @@ interface MetadataResponse {
   image: string;
   tba_address: string;
   og_name: string;
+  full_account_name: string;
   error?: string;
 }
 
@@ -53,7 +54,8 @@ export async function getMetadata(contract: string, tokenId: string): Promise<Me
           token_id,
           convert_from(convert_to(account_name, 'UTF8'), 'UTF8') as account_name,
           description,
-          tba_address
+          tba_address,
+          full_account_name
         FROM "${tableName}" 
         WHERE token_id = $1 
         LIMIT 1`,
@@ -94,7 +96,8 @@ export async function getMetadata(contract: string, tokenId: string): Promise<Me
         animation_url: `${process.env.NEXT_PUBLIC_METADATA_URL || 'http://localhost:3000'}/metadata/${contract}/${tokenId}`,
         image: imageUrl,
         og_name: sanitizedOG,
-        tba_address: account.tba_address
+        tba_address: account.tba_address,
+        full_account_name: account.full_account_name
       };
 
       console.log('Generated metadata:', metadata);

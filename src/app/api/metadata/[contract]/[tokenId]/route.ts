@@ -160,13 +160,14 @@ export async function GET(
         image: `${process.env.NEXT_PUBLIC_BLOB_URL}/default.png`, // Default image
         tba_address: '0x0000000000000000000000000000000000000000', // Zero address
         og_name: '',
+        full_account_name: 'Unknown',
       };
     }
 
     // Generate/refresh the image using metadata.image as base
     const generatedImageUrl = await generateAccountImage(
       metadata.image,
-      domainName,           
+      metadata.full_account_name || fullName,  // Use DB value first, fallback to onchain
       ogName.replace('.', ''), 
       params.tokenId
     );
